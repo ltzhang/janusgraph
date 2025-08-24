@@ -49,3 +49,6 @@ janusgraph-*/pom.xml.versionsBackup
 .factorypath
 
 janusgraph-benchmark/benchmark.json
+
+janusgraph-inmemory/java_test/lib/*
+janusgraph-inmemory/java_test/build/*
