@@ -657,17 +657,7 @@ cpp_memdb/
 ├── cpp_memdb.cpp           # Minimal implementation file (static definitions only)
 ├── Makefile                # Build configuration
 ├── test_memdb.cpp          # C++ test suite
-├── README.md               # This documentation
-│
-│ Legacy files (no longer used but kept for reference):
-├── StaticBuffer.h          # [LEGACY] Individual header files
-├── Entry.h                 # [LEGACY] Now consolidated into cpp_memdb.h
-├── EntryList.h/.cpp        # [LEGACY] Use cpp_memdb.h instead
-├── SliceQuery.h            # [LEGACY]
-├── StoreTransaction.h      # [LEGACY]
-├── InMemoryColumnValueStore.h      # [LEGACY]
-├── InMemoryKeyColumnValueStore.h   # [LEGACY]
-└── InMemoryStoreManager.h          # [LEGACY]
+└── README.md               # This documentation
 
 java_test/
 ├── NativeInMemoryDB.java   # Java-JNI interface
@@ -683,11 +673,11 @@ java_test/
 └── *.md                   # Additional documentation
 ```
 
-**Key Changes:**
+**Key Features:**
 - **Single header**: Only `cpp_memdb.h` and `cpp_memdb.cpp` are needed
-- **Inline performance**: All implementations are inline for optimization
+- **Inline performance**: All implementations are inline for optimization  
 - **Simplified includes**: Just `#include "cpp_memdb.h"` in your code
-- **Legacy compatibility**: Old individual headers still present but not used
+- **Clean structure**: Legacy individual header files removed for clarity
 
 ### Design Philosophy
 
