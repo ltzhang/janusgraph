@@ -2,13 +2,7 @@
 #include <string>
 #include <vector>
 #include <memory>
-#include "../cpp_memdb/StaticBuffer.h"
-#include "../cpp_memdb/Entry.h"
-#include "../cpp_memdb/EntryList.h"
-#include "../cpp_memdb/SliceQuery.h"
-#include "../cpp_memdb/StoreTransaction.h"
-#include "../cpp_memdb/InMemoryKeyColumnValueStore.h"
-#include "../cpp_memdb/InMemoryStoreManager.h"
+#include "../cpp_memdb/cpp_memdb.h"
 
 // Helper functions
 std::string jstringToString(JNIEnv *env, jstring jstr) {

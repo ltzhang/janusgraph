@@ -2,7 +2,7 @@ CXX = g++
 CXXFLAGS = -std=c++11 -Wall -Wextra -O2 -g
 INCLUDES = -I.
 
-SOURCES = EntryList.cpp
+SOURCES = cpp_memdb.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
 TARGET = test_memdb
@@ -22,7 +22,7 @@ test: $(TARGET)
 	./$(TARGET)
 
 clean:
-	rm -f $(OBJECTS) $(TARGET)
+	rm -f $(OBJECTS) $(TARGET) cpp_memdb.o
 
 install:
 	@echo "No installation required for this test program"

@@ -1,4 +1,4 @@
-#include "InMemoryStoreManager.h"
+#include "cpp_memdb.h"
 #include <iostream>
 #include <cassert>
 #include <string>
