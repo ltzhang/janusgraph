@@ -8,6 +8,7 @@
 #include <sstream>
 #include <cstring>
 #include <algorithm>
+#include <cstdint>
 
 /**
  * JanusGraph KVT Adapter
@@ -27,6 +28,11 @@ extern bool g_use_composite_key_method;
 // Separator for composite keys (using null character)
 const char KEY_COLUMN_SEPARATOR = '\0';
 
+#define CHECK(condition, message) \
+    if (!(condition)) { \
+        throw std::runtime_error(message); \
+    }
+
 // Column-value pair
 struct ColumnValue {
     std::string column;
@@ -34,6 +40,14 @@ struct ColumnValue {
     
     ColumnValue() = default;
     ColumnValue(const std::string& c, const std::string& v) : column(c), value(v) {}
+    ColumnValue(const std::string&& c, const std::string&& v) : column(std::move(c)), value(std::move(v)) {}
+    ColumnValue(ColumnValue&& other) noexcept : column(std::move(other.column)), value(std::move(other.value)) {}
+    bool operator < (const ColumnValue& other) const {
+        return column < other.column;
+    }
+    bool operator == (const ColumnValue& other) const {
+        return column == other.column;
+    }
 };
 
 // Utility functions for serialization
@@ -45,8 +59,9 @@ namespace serialization {
         
         // Write number of columns (4 bytes)
         uint32_t num_columns = columns.size();
+        CHECK(num_columns > 0, "Number of columns must be greater than 0");
         ss.write(reinterpret_cast<const char*>(&num_columns), sizeof(num_columns));
-        
+        CHECK(std::is_sorted(columns.begin(), columns.end()), "Columns Must Be sorted before serialization");
         // Write each column-value pair
         for (const auto& cv : columns) {
             // Write column length and data
@@ -67,7 +82,7 @@ namespace serialization {
     inline std::vector<ColumnValue> deserialize_columns(const std::string& data) {
         std::vector<ColumnValue> result;
         
-        if (data.empty()) return result;
+        CHECK(!data.empty(), "Data is empty");
         
         const char* ptr = data.data();
         const char* end = ptr + data.size();
@@ -100,23 +115,35 @@ namespace serialization {
             std::string value(ptr, val_len);
             ptr += val_len;
             
-            result.emplace_back(column, value);
+            result.emplace_back(std::move(column), std::move(value));
         }
         
+        // Only check sorting if we have data
+        if (!result.empty()) {
+            CHECK(std::is_sorted(result.begin(), result.end()), "Columns Must Be sorted before deserialization");
+        }
         return result;
     }
     
     // Create composite key from key and column
     inline std::string make_composite_key(const std::string& key, const std::string& column) {
+        //make sure there is no separator in the key or column, so that user cannot fake the composite key
+        if (key.find(KEY_COLUMN_SEPARATOR) != std::string::npos || 
+            column.find(KEY_COLUMN_SEPARATOR) != std::string::npos ||
+            key.empty() ||
+            column.empty()) {
+            throw std::invalid_argument("Key or column contains separator or is empty");
+        }
         return key + KEY_COLUMN_SEPARATOR + column;
     }
-    
+
     // Extract key and column from composite key
     inline std::pair<std::string, std::string> split_composite_key(const std::string& composite_key) {
         size_t pos = composite_key.find(KEY_COLUMN_SEPARATOR);
         if (pos != std::string::npos) {
             return {composite_key.substr(0, pos), composite_key.substr(pos + 1)};
         }
+        throw std::invalid_argument("Composite key is invalid");
         return {composite_key, ""};
     }
 }
@@ -136,6 +163,12 @@ public:
                     const std::string& key, const std::string& column,
                     const std::string& value, std::string& error_msg) {
         
+        // Input validation
+        if (key.empty() || column.empty()) {
+            error_msg = "Key and column cannot be empty";
+            return false;
+        }
+        
         if (g_use_composite_key_method) {
             // Method 2: Use composite key
             std::string composite_key = serialization::make_composite_key(key, column);
@@ -144,27 +177,22 @@ public:
             // Method 1: Serialize all columns in value
             // First, get existing columns
             std::vector<ColumnValue> columns = get_all_columns(tx_id, table_name, key, error_msg);
-            
             // Update or add the column
-            bool found = false;
-            for (auto& cv : columns) {
-                if (cv.column == column) {
-                    cv.value = value;
-                    found = true;
-                    break;
+            if (columns.empty()) {
+                columns.emplace_back(column, value);
+            } else {
+                CHECK(std::is_sorted(columns.begin(), columns.end()), "Columns are not sorted");
+                // Binary search and then update or insert
+                auto it = std::lower_bound(columns.begin(), columns.end(), column,
+                                         [](const ColumnValue& cv, const std::string& col) {
+                                             return cv.column < col;
+                                         });
+                if (it != columns.end() && it->column == column) {
+                    it->value = value;
+                } else {
+                    columns.emplace(it, column, value);
                 }
             }
-            
-            if (!found) {
-                columns.emplace_back(column, value);
-            }
-            
-            // Sort columns by name for efficient searching
-            std::sort(columns.begin(), columns.end(),
-                     [](const ColumnValue& a, const ColumnValue& b) {
-                         return a.column < b.column;
-                     });
-            
             // Serialize and store
             std::string serialized = serialization::serialize_columns(columns);
             return kvt_set(tx_id, table_name, key, serialized, error_msg);
@@ -177,6 +205,12 @@ public:
     bool get_column(uint64_t tx_id, const std::string& table_name,
                    const std::string& key, const std::string& column,
                    std::string& value, std::string& error_msg) {
+        
+        // Input validation
+        if (key.empty() || column.empty()) {
+            error_msg = "Key and column cannot be empty";
+            return false;
+        }
         
         if (g_use_composite_key_method) {
             // Method 2: Use composite key
@@ -193,15 +227,13 @@ public:
             
             // Binary search since columns are sorted
             auto it = std::lower_bound(columns.begin(), columns.end(), column,
-                                      [](const ColumnValue& cv, const std::string& col) {
-                                          return cv.column < col;
-                                      });
-            
+                                     [](const ColumnValue& cv, const std::string& col) {
+                                         return cv.column < col;
+                                     });
             if (it != columns.end() && it->column == column) {
                 value = it->value;
                 return true;
             }
-            
             error_msg = "Column not found: " + column;
             return false;
         }
@@ -214,25 +246,33 @@ public:
                       const std::string& key, const std::string& column,
                       std::string& error_msg) {
         
+        // Input validation
+        if (key.empty() || column.empty()) {
+            error_msg = "Key and column cannot be empty";
+            return false;
+        }
+        
         if (g_use_composite_key_method) {
             // Method 2: Delete composite key
             std::string composite_key = serialization::make_composite_key(key, column);
             return kvt_del(tx_id, table_name, composite_key, error_msg);
         } else {
-            // Method 1: Remove from serialized columns
+            // Method 1: Remove from serialized columns (assuming columns are sorted)
             std::vector<ColumnValue> columns = get_all_columns(tx_id, table_name, key, error_msg);
+            CHECK(std::is_sorted(columns.begin(), columns.end()), "Columns are not sorted");
+            // Binary search to find the column
+            auto it = std::lower_bound(columns.begin(), columns.end(), column,
+                                     [](const ColumnValue& cv, const std::string& col) {
+                                         return cv.column < col;
+                                     });
             
-            auto it = std::remove_if(columns.begin(), columns.end(),
-                                    [&column](const ColumnValue& cv) {
-                                        return cv.column == column;
-                                    });
-            
-            if (it == columns.end()) {
+            // Check if column was found and matches exactly
+            if (it == columns.end() || it->column != column) {
                 error_msg = "Column not found: " + column;
                 return false;
             }
-            
-            columns.erase(it, columns.end());
+            // Erase the found column
+            columns.erase(it);
             
             if (columns.empty()) {
                 // Delete the entire key if no columns left
@@ -262,9 +302,8 @@ public:
             if (kvt_scan(tx_id, table_name, start_key, end_key, 10000, scan_results, error_msg)) {
                 for (const auto& [composite_key, value] : scan_results) {
                     auto [extracted_key, column] = serialization::split_composite_key(composite_key);
-                    if (extracted_key == key) {
-                        result.emplace_back(column, value);
-                    }
+                    CHECK(extracted_key == key, "Composite key is not extracted correctly");
+                    result.emplace_back(column, value);
                 }
             }
         } else {
@@ -274,7 +313,6 @@ public:
                 result = serialization::deserialize_columns(serialized);
             }
         }
-        
         return result;
     }
     
@@ -283,6 +321,12 @@ public:
      */
     bool delete_key(uint64_t tx_id, const std::string& table_name,
                     const std::string& key, std::string& error_msg) {
+        
+        // Input validation
+        if (key.empty()) {
+            error_msg = "Key cannot be empty";
+            return false;
+        }
         
         if (g_use_composite_key_method) {
             // Method 2: Delete all composite keys with this prefix
@@ -308,6 +352,16 @@ public:
                     const std::string& key, const std::vector<ColumnValue>& columns,
                     std::string& error_msg) {
         
+        // Input validation
+        if (key.empty() || columns.empty()) {
+            error_msg = "Key and columns cannot be empty";
+            return false;
+        }
+        if (columns.empty()) {
+            error_msg = "Columns vector cannot be empty";
+            return false;
+        }
+        
         if (g_use_composite_key_method) {
             // Method 2: Set each composite key
             for (const auto& cv : columns) {
@@ -321,7 +375,6 @@ public:
             // Method 1: Serialize and store all at once
             // Get existing columns first
             std::vector<ColumnValue> existing = get_all_columns(tx_id, table_name, key, error_msg);
-            
             // Merge with new columns (new ones override existing)
             std::map<std::string, std::string> column_map;
             for (const auto& cv : existing) {
@@ -331,12 +384,11 @@ public:
                 column_map[cv.column] = cv.value;
             }
             
-            // Convert back to vector and sort
+            // Convert back to vector (map is already sorted by key)
             std::vector<ColumnValue> merged;
             for (const auto& [col, val] : column_map) {
                 merged.emplace_back(col, val);
             }
-            
             // Serialize and store
             std::string serialized = serialization::serialize_columns(merged);
             return kvt_set(tx_id, table_name, key, serialized, error_msg);
