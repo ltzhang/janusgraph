@@ -127,6 +127,7 @@
         <module>janusgraph-backend-testutils</module>
         <module>janusgraph-test</module>
         <module>janusgraph-inmemory</module>
+        <module>janusgraph-kvt</module>  <!-- Added this line -->
         <module>janusgraph-berkeleyje</module>
         <module>cassandra-hadoop-util</module>
         <module>scylla-hadoop-util</module>

@@ -49,3 +49,5 @@ janusgraph-*/pom.xml.versionsBackup
 .factorypath
 
 janusgraph-benchmark/benchmark.json
+janusgraph-kvt/kvt/kvt_mem.o
+janusgraph-kvt/src/main/native/libjanusgraph-kvt-jni.so
