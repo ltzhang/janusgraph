@@ -25,8 +25,9 @@ namespace janusgraph {
 // false = use serialized columns method (all columns in value)
 extern bool g_use_composite_key_method;
 
-// Separator for composite keys (using null character)
-const char KEY_COLUMN_SEPARATOR = '\0';
+// Separator for composite keys (using a special character that's unlikely in normal use)
+// We use ASCII 0x1F (Unit Separator) which is designed for this purpose
+const char KEY_COLUMN_SEPARATOR = '\x1F';
 
 #define CHECK(condition, message) \
     if (!(condition)) { \
@@ -166,7 +167,7 @@ public:
     /**
      * Set a column value for a key
      */
-    bool set_column(uint64_t tx_id, const std::string& table_name,
+    bool set_column(uint64_t tx_id, uint64_t table_id,
                     const std::string& key, const std::string& column,
                     const std::string& value, std::string& error_msg) {
         
@@ -179,11 +180,11 @@ public:
         if (g_use_composite_key_method) {
             // Method 2: Use composite key
             std::string composite_key = serialization::make_composite_key(key, column);
-            return kvt_set(tx_id, table_name, composite_key, value, error_msg) == KVTError::SUCCESS;
+            return kvt_set(tx_id, table_id, composite_key, value, error_msg) == KVTError::SUCCESS;
         } else {
             // Method 1: Serialize all columns in value
             // First, get existing columns
-            std::vector<ColumnValue> columns = get_all_columns(tx_id, table_name, key, error_msg);
+            std::vector<ColumnValue> columns = get_all_columns(tx_id, table_id, key, error_msg);
             // Update or add the column
             if (columns.empty()) {
                 columns.emplace_back(column, value);
@@ -202,14 +203,14 @@ public:
             }
             // Serialize and store
             std::string serialized = serialization::serialize_columns(columns);
-            return kvt_set(tx_id, table_name, key, serialized, error_msg) == KVTError::SUCCESS;
+            return kvt_set(tx_id, table_id, key, serialized, error_msg) == KVTError::SUCCESS;
         }
     }
     
     /**
      * Get a column value for a key
      */
-    bool get_column(uint64_t tx_id, const std::string& table_name,
+    bool get_column(uint64_t tx_id, uint64_t table_id,
                    const std::string& key, const std::string& column,
                    std::string& value, std::string& error_msg) {
         
@@ -222,11 +223,11 @@ public:
         if (g_use_composite_key_method) {
             // Method 2: Use composite key
             std::string composite_key = serialization::make_composite_key(key, column);
-            return kvt_get(tx_id, table_name, composite_key, value, error_msg) == KVTError::SUCCESS;
+            return kvt_get(tx_id, table_id, composite_key, value, error_msg) == KVTError::SUCCESS;
         } else {
             // Method 1: Deserialize and search
             std::string serialized;
-            if (kvt_get(tx_id, table_name, key, serialized, error_msg) != KVTError::SUCCESS) {
+            if (kvt_get(tx_id, table_id, key, serialized, error_msg) != KVTError::SUCCESS) {
                 return false;
             }
             
@@ -249,7 +250,7 @@ public:
     /**
      * Delete a column for a key
      */
-    bool delete_column(uint64_t tx_id, const std::string& table_name,
+    bool delete_column(uint64_t tx_id, uint64_t table_id,
                       const std::string& key, const std::string& column,
                       std::string& error_msg) {
         
@@ -262,10 +263,10 @@ public:
         if (g_use_composite_key_method) {
             // Method 2: Delete composite key
             std::string composite_key = serialization::make_composite_key(key, column);
-            return kvt_del(tx_id, table_name, composite_key, error_msg) == KVTError::SUCCESS;
+            return kvt_del(tx_id, table_id, composite_key, error_msg) == KVTError::SUCCESS;
         } else {
             // Method 1: Remove from serialized columns (assuming columns are sorted)
-            std::vector<ColumnValue> columns = get_all_columns(tx_id, table_name, key, error_msg);
+            std::vector<ColumnValue> columns = get_all_columns(tx_id, table_id, key, error_msg);
             CHECK(std::is_sorted(columns.begin(), columns.end()), "Columns are not sorted");
             // Binary search to find the column
             auto it = std::lower_bound(columns.begin(), columns.end(), column,
@@ -283,11 +284,11 @@ public:
             
             if (columns.empty()) {
                 // Delete the entire key if no columns left
-                return kvt_del(tx_id, table_name, key, error_msg) == KVTError::SUCCESS;
+                return kvt_del(tx_id, table_id, key, error_msg) == KVTError::SUCCESS;
             } else {
                 // Update with remaining columns
                 std::string serialized = serialization::serialize_columns(columns);
-                return kvt_set(tx_id, table_name, key, serialized, error_msg) == KVTError::SUCCESS;
+                return kvt_set(tx_id, table_id, key, serialized, error_msg) == KVTError::SUCCESS;
             }
         }
     }
@@ -295,18 +296,21 @@ public:
     /**
      * Get all columns for a key
      */
-    std::vector<ColumnValue> get_all_columns(uint64_t tx_id, const std::string& table_name,
+    std::vector<ColumnValue> get_all_columns(uint64_t tx_id, uint64_t table_id,
                                              const std::string& key, std::string& error_msg) {
         std::vector<ColumnValue> result;
         
         if (g_use_composite_key_method) {
             // Method 2: Scan for all keys with the prefix
             // Note: This requires range scan support
-            std::string start_key = serialization::make_composite_key(key, "");
-            std::string end_key = key + char(KEY_COLUMN_SEPARATOR + 1); // Next character after separator
+            // For composite keys, we want to scan all keys starting with "key\0"
+            // The start key is the key followed by the separator
+            std::string start_key = key + KEY_COLUMN_SEPARATOR;
+            // The end key is the key followed by the next character after separator
+            std::string end_key = key + char(KEY_COLUMN_SEPARATOR + 1);
             
             std::vector<std::pair<std::string, std::string>> scan_results;
-            if (kvt_scan(tx_id, table_name, start_key, end_key, 10000, scan_results, error_msg) == KVTError::SUCCESS) {
+            if (kvt_scan(tx_id, table_id, start_key, end_key, 10000, scan_results, error_msg) == KVTError::SUCCESS) {
                 for (const auto& [composite_key, value] : scan_results) {
                     auto [extracted_key, column] = serialization::split_composite_key(composite_key);
                     CHECK(extracted_key == key, "Composite key is not extracted correctly");
@@ -316,7 +320,7 @@ public:
         } else {
             // Method 1: Deserialize all columns
             std::string serialized;
-            if (kvt_get(tx_id, table_name, key, serialized, error_msg) == KVTError::SUCCESS) {
+            if (kvt_get(tx_id, table_id, key, serialized, error_msg) == KVTError::SUCCESS) {
                 result = serialization::deserialize_columns(serialized);
             }
         }
@@ -326,7 +330,7 @@ public:
     /**
      * Delete all columns for a key
      */
-    bool delete_key(uint64_t tx_id, const std::string& table_name,
+    bool delete_key(uint64_t tx_id, uint64_t table_id,
                     const std::string& key, std::string& error_msg) {
         
         // Input validation
@@ -337,25 +341,25 @@ public:
         
         if (g_use_composite_key_method) {
             // Method 2: Delete all composite keys with this prefix
-            std::vector<ColumnValue> columns = get_all_columns(tx_id, table_name, key, error_msg);
+            std::vector<ColumnValue> columns = get_all_columns(tx_id, table_id, key, error_msg);
             
             for (const auto& cv : columns) {
                 std::string composite_key = serialization::make_composite_key(key, cv.column);
-                if (kvt_del(tx_id, table_name, composite_key, error_msg) != KVTError::SUCCESS) {
+                if (kvt_del(tx_id, table_id, composite_key, error_msg) != KVTError::SUCCESS) {
                     return false;
                 }
             }
             return true;
         } else {
             // Method 1: Delete the single key
-            return kvt_del(tx_id, table_name, key, error_msg) == KVTError::SUCCESS;
+            return kvt_del(tx_id, table_id, key, error_msg) == KVTError::SUCCESS;
         }
     }
     
     /**
      * Set multiple columns for a key atomically
      */
-    bool set_columns(uint64_t tx_id, const std::string& table_name,
+    bool set_columns(uint64_t tx_id, uint64_t table_id,
                     const std::string& key, const std::vector<ColumnValue>& columns,
                     std::string& error_msg) {
         
@@ -373,7 +377,7 @@ public:
             // Method 2: Set each composite key
             for (const auto& cv : columns) {
                 std::string composite_key = serialization::make_composite_key(key, cv.column);
-                if (kvt_set(tx_id, table_name, composite_key, cv.value, error_msg) != KVTError::SUCCESS) {
+                if (kvt_set(tx_id, table_id, composite_key, cv.value, error_msg) != KVTError::SUCCESS) {
                     return false;
                 }
             }
@@ -381,7 +385,7 @@ public:
         } else {
             // Method 1: Serialize and store all at once
             // Get existing columns first
-            std::vector<ColumnValue> existing = get_all_columns(tx_id, table_name, key, error_msg);
+            std::vector<ColumnValue> existing = get_all_columns(tx_id, table_id, key, error_msg);
             // Merge with new columns (new ones override existing)
             std::map<std::string, std::string> column_map;
             for (const auto& cv : existing) {
@@ -398,7 +402,7 @@ public:
             }
             // Serialize and store
             std::string serialized = serialization::serialize_columns(merged);
-            return kvt_set(tx_id, table_name, key, serialized, error_msg) == KVTError::SUCCESS;
+            return kvt_set(tx_id, table_id, key, serialized, error_msg) == KVTError::SUCCESS;
         }
     }
     
@@ -424,7 +428,7 @@ public:
      * Execute batch operations using KVT batch API
      * Converts JanusGraph column operations to KVT operations
      */
-    bool batch_execute(uint64_t tx_id, const std::string& table_name,
+    bool batch_execute(uint64_t tx_id, uint64_t table_id,
                        const std::vector<JanusGraphBatchOp>& jg_ops,
                        std::vector<JanusGraphBatchResult>& jg_results,
                        std::string& error_msg) {
@@ -435,7 +439,7 @@ public:
         // Convert JanusGraph operations to KVT operations
         for (const auto& jg_op : jg_ops) {
             KVTOp kvt_op;
-            kvt_op.table_name = table_name;
+            kvt_op.table_id = table_id;
             
             if (g_use_composite_key_method) {
                 // Method 2: Use composite keys

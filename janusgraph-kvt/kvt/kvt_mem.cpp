@@ -3,12 +3,15 @@
 #include <stdexcept>
 
 // Global KVT manager instance
-std::unique_ptr<KVTManagerWrapper> g_kvt_manager;
+std::unique_ptr<KVTWrapper> g_kvt_manager;
 
 // Global KVT interface functions
 KVTError kvt_initialize() {
     try {
-        g_kvt_manager = std::make_unique<KVTManagerWrapper>(); // Create simple wrapper
+        //g_kvt_manager = std::make_unique<KVTMemManagerNoCC>(); // Create simple wrapper
+        //g_kvt_manager = std::make_unique<KVTMemManagerSimple>(); // Create simple wrapper
+        //g_kvt_manager = std::make_unique<KVTMemManager2PL>(); // Create simple wrapper
+        g_kvt_manager = std::make_unique<KVTMemManagerOCC>(); // Create simple wrapper
         return KVTError::SUCCESS;
     } catch (const std::exception& e) {
         return KVTError::UNKNOWN_ERROR;
@@ -27,6 +30,38 @@ KVTError kvt_create_table(const std::string& table_name, const std::string& part
     return g_kvt_manager->create_table(table_name, partition_method, table_id, error_msg);
 }
 
+KVTError kvt_drop_table(uint64_t table_id, std::string& error_msg) {
+    if (!g_kvt_manager) {
+        error_msg = "KVT system not initialized";
+        return KVTError::KVT_NOT_INITIALIZED;
+    }
+    return g_kvt_manager->drop_table(table_id, error_msg);
+}
+
+KVTError kvt_get_table_name(uint64_t table_id, std::string& table_name, std::string& error_msg) {
+    if (!g_kvt_manager) {
+        error_msg = "KVT system not initialized";
+        return KVTError::KVT_NOT_INITIALIZED;
+    }
+    return g_kvt_manager->get_table_name(table_id, table_name, error_msg);
+}
+
+KVTError kvt_get_table_id(const std::string& table_name, uint64_t& table_id, std::string& error_msg) {
+    if (!g_kvt_manager) {
+        error_msg = "KVT system not initialized";
+        return KVTError::KVT_NOT_INITIALIZED;
+    }
+    return g_kvt_manager->get_table_id(table_name, table_id, error_msg);
+}
+
+KVTError kvt_list_tables(std::vector<std::pair<std::string, uint64_t>>& results, std::string& error_msg) {
+    if (!g_kvt_manager) {
+        error_msg = "KVT system not initialized";
+        return KVTError::KVT_NOT_INITIALIZED;
+    }
+    return g_kvt_manager->list_tables(results, error_msg);
+}
+
 KVTError kvt_start_transaction(uint64_t& tx_id, std::string& error_msg) {
     if (!g_kvt_manager) {
         error_msg = "KVT system not initialized";
@@ -35,41 +70,41 @@ KVTError kvt_start_transaction(uint64_t& tx_id, std::string& error_msg) {
     return g_kvt_manager->start_transaction(tx_id, error_msg);
 }
 
-KVTError kvt_get(uint64_t tx_id, const std::string& table_name, const std::string& key, 
+KVTError kvt_get(uint64_t tx_id, uint64_t table_id, const std::string& key, 
              std::string& value, std::string& error_msg) {
     if (!g_kvt_manager) {
         error_msg = "KVT system not initialized";
         return KVTError::KVT_NOT_INITIALIZED;
     }
-    return g_kvt_manager->get(tx_id, table_name, key, value, error_msg);
+    return g_kvt_manager->get(tx_id, table_id, key, value, error_msg);
 }
 
-KVTError kvt_set(uint64_t tx_id, const std::string& table_name, const std::string& key, 
+KVTError kvt_set(uint64_t tx_id, uint64_t table_id, const std::string& key, 
              const std::string& value, std::string& error_msg) {
     if (!g_kvt_manager) {
         error_msg = "KVT system not initialized";
         return KVTError::KVT_NOT_INITIALIZED;
     }
-    return g_kvt_manager->set(tx_id, table_name, key, value, error_msg);
+    return g_kvt_manager->set(tx_id, table_id, key, value, error_msg);
 }
 
-KVTError kvt_del(uint64_t tx_id, const std::string& table_name, const std::string& key, 
+KVTError kvt_del(uint64_t tx_id, uint64_t table_id, const std::string& key, 
              std::string& error_msg) {
     if (!g_kvt_manager) {
         error_msg = "KVT system not initialized";
         return KVTError::KVT_NOT_INITIALIZED;
     }
-    return g_kvt_manager->del(tx_id, table_name, key, error_msg);
+    return g_kvt_manager->del(tx_id, table_id, key, error_msg);
 }
 
-KVTError kvt_scan(uint64_t tx_id, const std::string& table_name, const std::string& key_start, 
+KVTError kvt_scan(uint64_t tx_id, uint64_t table_id, const std::string& key_start, 
               const std::string& key_end, size_t num_item_limit, 
               std::vector<std::pair<std::string, std::string>>& results, std::string& error_msg) {
     if (!g_kvt_manager) {
         error_msg = "KVT system not initialized";
         return KVTError::KVT_NOT_INITIALIZED;
     }
-    return g_kvt_manager->scan(tx_id, table_name, key_start, key_end, num_item_limit, results, error_msg);
+    return g_kvt_manager->scan(tx_id, table_id, key_start, key_end, num_item_limit, results, error_msg);
 }
 
 KVTError kvt_commit_transaction(uint64_t tx_id, std::string& error_msg) {
@@ -101,7 +136,7 @@ KVTError kvt_batch_execute(uint64_t tx_id, const KVTBatchOps& batch_ops,
 //=============================================================================================
 
 // Table management
-KVTError KVTManagerWrapperNoCC::create_table(const std::string& table_name, const std::string& partition_method, uint64_t& table_id, std::string& error_msg) {
+KVTError KVTMemManagerNoCC::create_table(const std::string& table_name, const std::string& partition_method, uint64_t& table_id, std::string& error_msg) {
     std::lock_guard<std::mutex> lock(global_mutex);
     if (table_to_id.find(table_name) != table_to_id.end()) {
         error_msg = "Table " + table_name + " already exists";
@@ -113,24 +148,87 @@ KVTError KVTManagerWrapperNoCC::create_table(const std::string& table_name, cons
     table_id = next_table_id - 1;
     return KVTError::SUCCESS;
 }
-KVTError KVTManagerWrapperNoCC::start_transaction(uint64_t& tx_id, std::string& error_msg) {
+
+KVTError KVTMemManagerNoCC::drop_table(uint64_t table_id, std::string& error_msg) {
+    std::lock_guard<std::mutex> lock(global_mutex);
+    std::string table_name;
+    for (const auto& pair : table_to_id) {
+        if (pair.second == table_id) {
+            table_name = pair.first;
+            break;
+        }
+    }
+    if (table_name.empty()) {
+        error_msg = "Table with ID " + std::to_string(table_id) + " not found";
+        return KVTError::TABLE_NOT_FOUND;
+    }
+    
+    // Remove all data associated with this table
+    auto it = table_data.begin();
+    while (it != table_data.end()) {
+        std::pair<uint64_t, std::string> parsed = parse_table_key(it->first);
+        if (parsed.first == table_id) {
+            it = table_data.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    
+    // Remove table from table_to_id map
+    table_to_id.erase(table_name);
+    std::cout << "drop_table " << table_name << std::endl;
+    return KVTError::SUCCESS;
+}
+
+KVTError KVTMemManagerNoCC::get_table_name(uint64_t table_id, std::string& table_name, std::string& error_msg) {
+    std::lock_guard<std::mutex> lock(global_mutex);
+    for (const auto& pair : table_to_id) {
+        if (pair.second == table_id) {
+            table_name = pair.first;
+            return KVTError::SUCCESS;
+        }
+    }
+    error_msg = "Table with ID " + std::to_string(table_id) + " not found";
+    return KVTError::TABLE_NOT_FOUND;
+}
+
+KVTError KVTMemManagerNoCC::get_table_id(const std::string& table_name, uint64_t& table_id, std::string& error_msg) {
+    std::lock_guard<std::mutex> lock(global_mutex);
+    auto it = table_to_id.find(table_name);
+    if (it == table_to_id.end()) {
+        error_msg = "Table " + table_name + " not found";
+        return KVTError::TABLE_NOT_FOUND;
+    }
+    table_id = it->second;
+    return KVTError::SUCCESS;
+}
+
+KVTError KVTMemManagerNoCC::list_tables(std::vector<std::pair<std::string, uint64_t>>& results, std::string& error_msg) {
+    std::lock_guard<std::mutex> lock(global_mutex);
+    results.clear();
+    for (const auto& pair : table_to_id) {
+        results.emplace_back(pair.first, pair.second);
+    }
+    return KVTError::SUCCESS;
+}
+KVTError KVTMemManagerNoCC::start_transaction(uint64_t& tx_id, std::string& error_msg) {
     std::lock_guard<std::mutex> lock(global_mutex);
     std::cout << "start_transaction " << next_tx_id << std::endl;
     next_tx_id += 1;
     tx_id = next_tx_id - 1;
     return KVTError::SUCCESS;
 }
-KVTError KVTManagerWrapperNoCC::commit_transaction(uint64_t tx_id, std::string& error_msg) 
+KVTError KVTMemManagerNoCC::commit_transaction(uint64_t tx_id, std::string& error_msg) 
 {
     std::cout << "commit_transaction " << tx_id << std::endl;
     return KVTError::SUCCESS;
 }
-KVTError KVTManagerWrapperNoCC::rollback_transaction(uint64_t tx_id, std::string& error_msg) {
+KVTError KVTMemManagerNoCC::rollback_transaction(uint64_t tx_id, std::string& error_msg) {
     std::cout << "rollback_transaction " << tx_id << std::endl;
     return KVTError::SUCCESS;
 }
 // Data operations  
-KVTError KVTManagerWrapperNoCC::get(uint64_t tx_id, const std::string& table_name, const std::string& key, 
+KVTError KVTMemManagerNoCC::get(uint64_t tx_id, uint64_t table_id, const std::string& key, 
             std::string& value, std::string& error_msg) {
     std::lock_guard<std::mutex> lock(global_mutex);
     if (tx_id >= next_tx_id) {
@@ -138,63 +236,92 @@ KVTError KVTManagerWrapperNoCC::get(uint64_t tx_id, const std::string& table_nam
         return KVTError::TRANSACTION_NOT_FOUND;
     }
 
-    if (table_to_id.find(table_name) == table_to_id.end()) {
-        error_msg = "Table " + table_name + " not found";
+    // Check if table_id exists
+    bool table_exists = false;
+    for (const auto& pair : table_to_id) {
+        if (pair.second == table_id) {
+            table_exists = true;
+            break;
+        }
+    }
+    if (!table_exists) {
+        error_msg = "Table with ID " + std::to_string(table_id) + " not found";
         return KVTError::TABLE_NOT_FOUND;
     }
-    std::string table_key = make_table_key(table_name, key);
+    
+    std::string table_key = make_table_key(table_id, key);
     auto it = table_data.find(table_key);
     if (it == table_data.end()) {
         error_msg = "Key " + key + " not found";
         return KVTError::KEY_NOT_FOUND;
     }
     value = it->second;
-    std::cout << "get " << table_name << ":" << key << " = " << value << std::endl;
+    std::cout << "get " << table_id << ":" << key << " = " << value << std::endl;
     return KVTError::SUCCESS;
 }
 
-KVTError KVTManagerWrapperNoCC::set(uint64_t tx_id, const std::string& table_name, const std::string& key, 
+KVTError KVTMemManagerNoCC::set(uint64_t tx_id, uint64_t table_id, const std::string& key, 
             const std::string& value, std::string& error_msg) {
     std::lock_guard<std::mutex> lock(global_mutex);
     if (tx_id >= next_tx_id) {
         error_msg = "Transaction " + std::to_string(tx_id) + " not found";
         return KVTError::TRANSACTION_NOT_FOUND;
     }
-    if (table_to_id.find(table_name) == table_to_id.end()) {
-        error_msg = "Table " + table_name + " not found";
+    
+    // Check if table_id exists
+    bool table_exists = false;
+    for (const auto& pair : table_to_id) {
+        if (pair.second == table_id) {
+            table_exists = true;
+            break;
+        }
+    }
+    if (!table_exists) {
+        error_msg = "Table with ID " + std::to_string(table_id) + " not found";
         return KVTError::TABLE_NOT_FOUND;
     }
-    std::string table_key = make_table_key(table_name, key);
+    
+    std::string table_key = make_table_key(table_id, key);
     table_data[table_key] = value;
-    std::cout << "set " << table_name << ":" << key << " = " << value << std::endl;
+    std::cout << "set " << table_id << ":" << key << " = " << value << std::endl;
     return KVTError::SUCCESS;
 
 }
-KVTError KVTManagerWrapperNoCC::del(uint64_t tx_id, const std::string& table_name, 
+KVTError KVTMemManagerNoCC::del(uint64_t tx_id, uint64_t table_id, 
         const std::string& key, std::string& error_msg) {
     std::lock_guard<std::mutex> lock(global_mutex);
     if (tx_id >= next_tx_id) {
         error_msg = "Transaction " + std::to_string(tx_id) + " not found";
         return KVTError::TRANSACTION_NOT_FOUND;
     }
-    if (table_to_id.find(table_name) == table_to_id.end()) {
-        error_msg = "Table " + table_name + " not found";
+    
+    // Check if table_id exists
+    bool table_exists = false;
+    for (const auto& pair : table_to_id) {
+        if (pair.second == table_id) {
+            table_exists = true;
+            break;
+        }
+    }
+    if (!table_exists) {
+        error_msg = "Table with ID " + std::to_string(table_id) + " not found";
         return KVTError::TABLE_NOT_FOUND;
     }
-    std::string table_key = make_table_key(table_name, key);
+    
+    std::string table_key = make_table_key(table_id, key);
     if (table_data.find(table_key) == table_data.end()) {
-        std::cout << "del " << table_name << ":" << key << " not found" << std::endl;
+        std::cout << "del " << table_id << ":" << key << " not found" << std::endl;
         error_msg = "Key " + key + " not found";
         return KVTError::KEY_NOT_FOUND;
     }
     else {
         table_data.erase(table_key);
-        std::cout << "del " << table_name << ":" << key << std::endl;
+        std::cout << "del " << table_id << ":" << key << std::endl;
         return KVTError::SUCCESS;
     }
 }
 
-KVTError KVTManagerWrapperNoCC::scan(uint64_t tx_id, const std::string& table_name, const std::string& key_start, 
+KVTError KVTMemManagerNoCC::scan(uint64_t tx_id, uint64_t table_id, const std::string& key_start, 
             const std::string& key_end, size_t num_item_limit, 
             std::vector<std::pair<std::string, std::string>>& results, std::string& error_msg) {
     std::lock_guard<std::mutex> lock(global_mutex);
@@ -202,25 +329,35 @@ KVTError KVTManagerWrapperNoCC::scan(uint64_t tx_id, const std::string& table_na
         error_msg = "Transaction " + std::to_string(tx_id) + " not found";
         return KVTError::TRANSACTION_NOT_FOUND;
     }
-    if (table_to_id.find(table_name) == table_to_id.end()) {
-        error_msg = "Table " + table_name + " not found";
+    
+    // Check if table_id exists
+    bool table_exists = false;
+    for (const auto& pair : table_to_id) {
+        if (pair.second == table_id) {
+            table_exists = true;
+            break;
+        }
+    }
+    if (!table_exists) {
+        error_msg = "Table with ID " + std::to_string(table_id) + " not found";
         return KVTError::TABLE_NOT_FOUND;
     }
-    std::string table_key = make_table_key(table_name, key_start);
-    std::string table_key_end = make_table_key(table_name, key_end);
+    
+    std::string table_key = make_table_key(table_id, key_start);
+    std::string table_key_end = make_table_key(table_id, key_end);
     auto itr = table_data.lower_bound(table_key);
     auto end_itr = table_data.upper_bound(table_key_end);
     while (itr != end_itr && results.size() < num_item_limit) { 
         results.emplace_back(parse_table_key(itr->first).second, itr->second);
         ++itr;
     }
-    std::cout << "scan " << table_name << ":" << key_start << " to " << key_end << " = " << results.size() << " items" << std::endl;
+    std::cout << "scan " << table_id << ":" << key_start << " to " << key_end << " = " << results.size() << " items" << std::endl;
     return KVTError::SUCCESS;
 }
 
 //==================================KVT ManagerWrapperSimple ===========================================================
 
-KVTError KVTManagerWrapperSimple::create_table(const std::string& table_name, const std::string& partition_method, uint64_t& table_id, std::string& error_msg)
+KVTError KVTMemManagerSimple::create_table(const std::string& table_name, const std::string& partition_method, uint64_t& table_id, std::string& error_msg)
 {
     std::lock_guard<std::mutex> lock(global_mutex);
     if (table_to_id.find(table_name) != table_to_id.end()) {
@@ -233,7 +370,73 @@ KVTError KVTManagerWrapperSimple::create_table(const std::string& table_name, co
     return KVTError::SUCCESS;
 }
 
-KVTError KVTManagerWrapperSimple::start_transaction(uint64_t& tx_id, std::string& error_msg) {
+KVTError KVTMemManagerSimple::drop_table(uint64_t table_id, std::string& error_msg)
+{
+    std::lock_guard<std::mutex> lock(global_mutex);
+    std::string table_name;
+    for (const auto& pair : table_to_id) {
+        if (pair.second == table_id) {
+            table_name = pair.first;
+            break;
+        }
+    }
+    if (table_name.empty()) {
+        error_msg = "Table with ID " + std::to_string(table_id) + " not found";
+        return KVTError::TABLE_NOT_FOUND;
+    }
+    
+    // Remove all data associated with this table
+    auto it = table_data.begin();
+    while (it != table_data.end()) {
+        std::pair<uint64_t, std::string> parsed = parse_table_key(it->first);
+        if (parsed.first == table_id) {
+            it = table_data.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    
+    // Remove table from table_to_id map
+    table_to_id.erase(table_name);
+    return KVTError::SUCCESS;
+}
+
+KVTError KVTMemManagerSimple::get_table_name(uint64_t table_id, std::string& table_name, std::string& error_msg)
+{
+    std::lock_guard<std::mutex> lock(global_mutex);
+    for (const auto& pair : table_to_id) {
+        if (pair.second == table_id) {
+            table_name = pair.first;
+            return KVTError::SUCCESS;
+        }
+    }
+    error_msg = "Table with ID " + std::to_string(table_id) + " not found";
+    return KVTError::TABLE_NOT_FOUND;
+}
+
+KVTError KVTMemManagerSimple::get_table_id(const std::string& table_name, uint64_t& table_id, std::string& error_msg)
+{
+    std::lock_guard<std::mutex> lock(global_mutex);
+    auto it = table_to_id.find(table_name);
+    if (it == table_to_id.end()) {
+        error_msg = "Table " + table_name + " not found";
+        return KVTError::TABLE_NOT_FOUND;
+    }
+    table_id = it->second;
+    return KVTError::SUCCESS;
+}
+
+KVTError KVTMemManagerSimple::list_tables(std::vector<std::pair<std::string, uint64_t>>& results, std::string& error_msg)
+{
+    std::lock_guard<std::mutex> lock(global_mutex);
+    results.clear();
+    for (const auto& pair : table_to_id) {
+        results.emplace_back(pair.first, pair.second);
+    }
+    return KVTError::SUCCESS;
+}
+
+KVTError KVTMemManagerSimple::start_transaction(uint64_t& tx_id, std::string& error_msg) {
     std::lock_guard<std::mutex> lock(global_mutex);
     if (current_tx_id != 0) {
         error_msg = "A transaction is already running";
@@ -245,7 +448,7 @@ KVTError KVTManagerWrapperSimple::start_transaction(uint64_t& tx_id, std::string
     return KVTError::SUCCESS;
 }
 
-KVTError KVTManagerWrapperSimple::commit_transaction(uint64_t tx_id, std::string& error_msg) {
+KVTError KVTMemManagerSimple::commit_transaction(uint64_t tx_id, std::string& error_msg) {
     std::lock_guard<std::mutex> lock(global_mutex);
     if (current_tx_id != tx_id) {
         error_msg = "Transaction " + std::to_string(tx_id) + " not found";
@@ -268,7 +471,7 @@ KVTError KVTManagerWrapperSimple::commit_transaction(uint64_t tx_id, std::string
     return KVTError::SUCCESS;
 }
 
-KVTError KVTManagerWrapperSimple::rollback_transaction(uint64_t tx_id, std::string& error_msg) {
+KVTError KVTMemManagerSimple::rollback_transaction(uint64_t tx_id, std::string& error_msg) {
     std::lock_guard<std::mutex> lock(global_mutex);
     if (current_tx_id != tx_id) {
         error_msg = "Transaction " + std::to_string(tx_id) + " not found";
@@ -280,11 +483,20 @@ KVTError KVTManagerWrapperSimple::rollback_transaction(uint64_t tx_id, std::stri
     return KVTError::SUCCESS;
 }
 
-KVTError KVTManagerWrapperSimple::get(uint64_t tx_id, const std::string& table_name, const std::string& key, 
+KVTError KVTMemManagerSimple::get(uint64_t tx_id, uint64_t table_id, const std::string& key, 
             std::string& value, std::string& error_msg) {
     std::lock_guard<std::mutex> lock(global_mutex);
-    if (table_to_id.find(table_name) == table_to_id.end()) {
-        error_msg = "Table " + table_name + " not found";
+    
+    // Check if table_id exists
+    bool table_exists = false;
+    for (const auto& pair : table_to_id) {
+        if (pair.second == table_id) {
+            table_exists = true;
+            break;
+        }
+    }
+    if (!table_exists) {
+        error_msg = "Table with ID " + std::to_string(table_id) + " not found";
         return KVTError::TABLE_NOT_FOUND;
     }
 
@@ -294,7 +506,7 @@ KVTError KVTManagerWrapperSimple::get(uint64_t tx_id, const std::string& table_n
         error_msg = "Transaction " + std::to_string(tx_id) + " not found";
         return KVTError::TRANSACTION_NOT_FOUND;
     }
-    std::string table_key = make_table_key(table_name, key);
+    std::string table_key = make_table_key(table_id, key);
     auto itr = write_set.find(table_key);
     if (itr != write_set.end()) {
         value = itr->second;
@@ -314,14 +526,24 @@ KVTError KVTManagerWrapperSimple::get(uint64_t tx_id, const std::string& table_n
     return KVTError::SUCCESS;
 }
 
-KVTError KVTManagerWrapperSimple::set(uint64_t tx_id, const std::string& table_name, const std::string& key, 
+KVTError KVTMemManagerSimple::set(uint64_t tx_id, uint64_t table_id, const std::string& key, 
             const std::string& value, std::string& error_msg)
 {
     std::lock_guard<std::mutex> lock(global_mutex);
-    if (table_to_id.find(table_name) == table_to_id.end()) {
-        error_msg = "Table " + table_name + " not found";
+    
+    // Check if table_id exists
+    bool table_exists = false;
+    for (const auto& pair : table_to_id) {
+        if (pair.second == table_id) {
+            table_exists = true;
+            break;
+        }
+    }
+    if (!table_exists) {
+        error_msg = "Table with ID " + std::to_string(table_id) + " not found";
         return KVTError::TABLE_NOT_FOUND;
     }
+    
     //we cannot allow one shot mutation operations when another transaction is running.
     //When current_tx_id is 0, (i.e. no ongoing transaction) we allow one shot mutation (which also have tx_id 0).
     //we only allow a single transaction at a time, so we check if the transaction id is the current one.
@@ -330,7 +552,7 @@ KVTError KVTManagerWrapperSimple::set(uint64_t tx_id, const std::string& table_n
         return KVTError::TRANSACTION_NOT_FOUND;
     }
     //the invariant is that when a key is deleted, it must not be in the write set. vice versa.
-    std::string table_key = make_table_key(table_name, key);
+    std::string table_key = make_table_key(table_id, key);
     auto itr = delete_set.find(table_key);
     if (itr != delete_set.end()) 
         delete_set.erase(itr);
@@ -338,13 +560,23 @@ KVTError KVTManagerWrapperSimple::set(uint64_t tx_id, const std::string& table_n
     return KVTError::SUCCESS;
 }
 
-KVTError KVTManagerWrapperSimple::del(uint64_t tx_id, const std::string& table_name, const std::string& key, 
+KVTError KVTMemManagerSimple::del(uint64_t tx_id, uint64_t table_id, const std::string& key, 
     std::string& error_msg) {
     std::lock_guard<std::mutex> lock(global_mutex);
-    if (table_to_id.find(table_name) == table_to_id.end()) {
-        error_msg = "Table " + table_name + " not found";
+    
+    // Check if table_id exists
+    bool table_exists = false;
+    for (const auto& pair : table_to_id) {
+        if (pair.second == table_id) {
+            table_exists = true;
+            break;
+        }
+    }
+    if (!table_exists) {
+        error_msg = "Table with ID " + std::to_string(table_id) + " not found";
         return KVTError::TABLE_NOT_FOUND;
     }
+    
     //we cannot allow one shot mutation operations when another transaction is running.
     //When current_tx_id is 0, (i.e. no ongoing transaction) we allow one shot mutation (which also have tx_id 0).
     //we only allow a single transaction at a time, so we check if the transaction id is the current one.
@@ -352,7 +584,7 @@ KVTError KVTManagerWrapperSimple::del(uint64_t tx_id, const std::string& table_n
         error_msg = "Transaction " + std::to_string(tx_id) + " not found";
         return KVTError::TRANSACTION_NOT_FOUND;
     }
-    std::string table_key = make_table_key(table_name, key);
+    std::string table_key = make_table_key(table_id, key);
     //the invariant is that when a key is deleted, it must not be in the write set. vice versa.
     auto itr = write_set.find(table_key);
     if (itr != write_set.end()) {
@@ -368,14 +600,24 @@ KVTError KVTManagerWrapperSimple::del(uint64_t tx_id, const std::string& table_n
     return KVTError::SUCCESS;
 }
 
-KVTError KVTManagerWrapperSimple::scan(uint64_t tx_id, const std::string& table_name, const std::string& key_start, 
+KVTError KVTMemManagerSimple::scan(uint64_t tx_id, uint64_t table_id, const std::string& key_start, 
             const std::string& key_end, size_t num_item_limit, 
             std::vector<std::pair<std::string, std::string>>& results, std::string& error_msg) {
     std::lock_guard<std::mutex> lock(global_mutex);
-    if (table_to_id.find(table_name) == table_to_id.end()) {
-        error_msg = "Table " + table_name + " not found";
+    
+    // Check if table_id exists
+    bool table_exists = false;
+    for (const auto& pair : table_to_id) {
+        if (pair.second == table_id) {
+            table_exists = true;
+            break;
+        }
+    }
+    if (!table_exists) {
+        error_msg = "Table with ID " + std::to_string(table_id) + " not found";
         return KVTError::TABLE_NOT_FOUND;
     }
+    
     //if tx_id is 0, it is a one-shot read operation, so we just get the data from the table.
     //otherwise, we only allow a single transaction at a time, so we check if the transaction id is the current one.
     if (tx_id != 0 && current_tx_id != tx_id) {
@@ -384,8 +626,8 @@ KVTError KVTManagerWrapperSimple::scan(uint64_t tx_id, const std::string& table_
     }
     
     results.clear();
-    std::string table_key = make_table_key(table_name, key_start);
-    std::string table_key_end = make_table_key(table_name, key_end);
+    std::string table_key = make_table_key(table_id, key_start);
+    std::string table_key_end = make_table_key(table_id, key_end);
     
     // First, scan table_data for existing keys
     std::map<std::string, std::string> result_map; 
@@ -398,16 +640,16 @@ KVTError KVTManagerWrapperSimple::scan(uint64_t tx_id, const std::string& table_
     end_itr = write_set.upper_bound(table_key_end);
     result_map.insert(itr, end_itr);    
     for (auto & [table_key, value] : result_map) {
-        auto [table_name, key] = parse_table_key(table_key);
+        auto [table_id_parsed, key] = parse_table_key(table_key);
         results.emplace_back(key, value);
     }
     return KVTError::SUCCESS;
 }
 
 
-//==================================KVT KVTManagerWrapper2PL ===========================================================
+//==================================KVT KVTMemManager2PL ===========================================================
 
-KVTError KVTManagerWrapper2PL::commit_transaction(uint64_t tx_id, std::string& error_msg) {
+KVTError KVTMemManager2PL::commit_transaction(uint64_t tx_id, std::string& error_msg) {
     std::lock_guard<std::mutex> lock(global_mutex);
     Transaction* tx = get_transaction(tx_id);
     if (!tx) {
@@ -417,8 +659,8 @@ KVTError KVTManagerWrapper2PL::commit_transaction(uint64_t tx_id, std::string& e
     
     // Apply deletes first
     for (const auto& delete_key : tx->delete_set) {
-        auto [table_name, key] = parse_table_key(delete_key);
-        Table* table = get_table(table_name);
+        auto [table_id_parsed, key] = parse_table_key(delete_key);
+        Table* table = get_table_by_id(table_id_parsed);
         if (table) {
             auto it = table->data.find(key);
             if (it != table->data.end()) {
@@ -431,8 +673,8 @@ KVTError KVTManagerWrapper2PL::commit_transaction(uint64_t tx_id, std::string& e
     
     // Apply writes
     for (const auto& [write_key, entry] : tx->write_set) {
-        auto [table_name, key] = parse_table_key(write_key);
-        Table* table = get_table(table_name);
+        auto [table_id_parsed, key] = parse_table_key(write_key);
+        Table* table = get_table_by_id(table_id_parsed);
         if (table) {
             auto it = table->data.find(key);
             if (it != table->data.end()) {
@@ -458,8 +700,8 @@ KVTError KVTManagerWrapper2PL::commit_transaction(uint64_t tx_id, std::string& e
             continue;
         }
         
-        auto [table_name, key] = parse_table_key(read_key);
-        Table* table = get_table(table_name);
+        auto [table_id_parsed, key] = parse_table_key(read_key);
+        Table* table = get_table_by_id(table_id_parsed);
         if (table) {
             auto it = table->data.find(key);
             if (it != table->data.end()) {
@@ -473,7 +715,7 @@ KVTError KVTManagerWrapper2PL::commit_transaction(uint64_t tx_id, std::string& e
     return KVTError::SUCCESS;
 }
 
-KVTError KVTManagerWrapper2PL::rollback_transaction(uint64_t tx_id, std::string& error_msg)  {
+KVTError KVTMemManager2PL::rollback_transaction(uint64_t tx_id, std::string& error_msg)  {
     std::lock_guard<std::mutex> lock(global_mutex);
     Transaction* tx = get_transaction(tx_id);
     if (!tx) {
@@ -484,8 +726,8 @@ KVTError KVTManagerWrapper2PL::rollback_transaction(uint64_t tx_id, std::string&
     // Release all locks held by this transaction
     // Release write locks (for keys that were to be written but not yet)
     for (const auto& [write_key, entry] : tx->write_set) {
-        auto [table_name, key] = parse_table_key(write_key);
-        Table* table = get_table(table_name);
+        auto [table_id_parsed, key] = parse_table_key(write_key);
+        Table* table = get_table_by_id(table_id_parsed);
         if (table) {
             auto it = table->data.find(key);
             if (it != table->data.end() && it->second.metadata == static_cast<int32_t>(tx_id)) {
@@ -501,8 +743,8 @@ KVTError KVTManagerWrapper2PL::rollback_transaction(uint64_t tx_id, std::string&
     
     // Release read locks
     for (const auto& [read_key, entry] : tx->read_set) {
-        auto [table_name, key] = parse_table_key(read_key);
-        Table* table = get_table(table_name);
+        auto [table_id_parsed, key] = parse_table_key(read_key);
+        Table* table = get_table_by_id(table_id_parsed);
         if (table) {
             auto it = table->data.find(key);
             if (it != table->data.end() && it->second.metadata == static_cast<int32_t>(tx_id)) {
@@ -513,8 +755,8 @@ KVTError KVTManagerWrapper2PL::rollback_transaction(uint64_t tx_id, std::string&
     
     // Release delete locks
     for (const auto& delete_key : tx->delete_set) {
-        auto [table_name, key] = parse_table_key(delete_key);
-        Table* table = get_table(table_name);
+        auto [table_id_parsed, key] = parse_table_key(delete_key);
+        Table* table = get_table_by_id(table_id_parsed);
         if (table) {
             auto it = table->data.find(key);
             if (it != table->data.end() && it->second.metadata == static_cast<int32_t>(tx_id)) {
@@ -527,15 +769,15 @@ KVTError KVTManagerWrapper2PL::rollback_transaction(uint64_t tx_id, std::string&
     return KVTError::SUCCESS;
 }
 
-KVTError KVTManagerWrapper2PL::get(uint64_t tx_id, const std::string& table_name, const std::string& key,
+KVTError KVTMemManager2PL::get(uint64_t tx_id, uint64_t table_id, const std::string& key,
             std::string& value, std::string& error_msg)  {
     std::lock_guard<std::mutex> lock(global_mutex);
     
     // One-shot read
     if (tx_id == 0) {
-        Table* table = get_table(table_name);
+        Table* table = get_table_by_id(table_id);
         if (!table) {
-            error_msg = "Table " + table_name + " not found";
+            error_msg = "Table with ID " + std::to_string(table_id) + " not found";
             return KVTError::TABLE_NOT_FOUND;
         }
         auto it = table->data.find(key);
@@ -557,7 +799,7 @@ KVTError KVTManagerWrapper2PL::get(uint64_t tx_id, const std::string& table_name
         return KVTError::TRANSACTION_NOT_FOUND;
     }
     
-    std::string table_key = make_table_key(table_name, key);
+    std::string table_key = make_table_key(table_id, key);
     
     // Check if deleted in this transaction
     if (tx->delete_set.find(table_key) != tx->delete_set.end()) {
@@ -580,9 +822,9 @@ KVTError KVTManagerWrapper2PL::get(uint64_t tx_id, const std::string& table_name
     }
     
     // Need to read from table and acquire lock
-    Table* table = get_table(table_name);
+    Table* table = get_table_by_id(table_id);
     if (!table) {
-        error_msg = "Table " + table_name + " not found";
+        error_msg = "Table with ID " + std::to_string(table_id) + " not found";
         return KVTError::TABLE_NOT_FOUND;
     }
     
@@ -605,14 +847,14 @@ KVTError KVTManagerWrapper2PL::get(uint64_t tx_id, const std::string& table_name
     return KVTError::SUCCESS;
 }
 
-KVTError KVTManagerWrapper2PL::set(uint64_t tx_id, const std::string& table_name, const std::string& key,
+KVTError KVTMemManager2PL::set(uint64_t tx_id, uint64_t table_id, const std::string& key,
             const std::string& value, std::string& error_msg)  {
     std::lock_guard<std::mutex> lock(global_mutex);
     
     if (tx_id == 0) {
-        Table* table = get_table(table_name);
+        Table* table = get_table_by_id(table_id);
         if (!table) {
-            error_msg = "Table " + table_name + " not found";
+            error_msg = "Table with ID " + std::to_string(table_id) + " not found";
             return KVTError::TABLE_NOT_FOUND;
         }
         auto itr = table->data.find(key);
@@ -636,7 +878,7 @@ KVTError KVTManagerWrapper2PL::set(uint64_t tx_id, const std::string& table_name
         return KVTError::TRANSACTION_NOT_FOUND;
     }
     
-    std::string table_key = make_table_key(table_name, key);
+    std::string table_key = make_table_key(table_id, key);
     
     // Remove from delete set if it was there
     tx->delete_set.erase(table_key);
@@ -648,9 +890,9 @@ KVTError KVTManagerWrapper2PL::set(uint64_t tx_id, const std::string& table_name
     }
     
     // Need to acquire lock if we don't already have it
-    Table* table = get_table(table_name);
+    Table* table = get_table_by_id(table_id);
     if (!table) {
-        error_msg = "Table " + table_name + " not found";
+        error_msg = "Table with ID " + std::to_string(table_id) + " not found";
         return KVTError::TABLE_NOT_FOUND;
     }
     
@@ -679,14 +921,14 @@ KVTError KVTManagerWrapper2PL::set(uint64_t tx_id, const std::string& table_name
     return KVTError::SUCCESS;
 }
 
-KVTError KVTManagerWrapper2PL::del(uint64_t tx_id, const std::string& table_name, const std::string& key,
+KVTError KVTMemManager2PL::del(uint64_t tx_id, uint64_t table_id, const std::string& key,
             std::string& error_msg)  {
     std::lock_guard<std::mutex> lock(global_mutex);
     
     if (tx_id == 0) {
-        Table* table = get_table(table_name);
+        Table* table = get_table_by_id(table_id);
         if (!table) {
-            error_msg = "Table " + table_name + " not found";
+            error_msg = "Table with ID " + std::to_string(table_id) + " not found";
             return KVTError::TABLE_NOT_FOUND;
         }
         auto itr = table->data.find(key);
@@ -710,7 +952,7 @@ KVTError KVTManagerWrapper2PL::del(uint64_t tx_id, const std::string& table_name
         return KVTError::TRANSACTION_NOT_FOUND;
     }
     
-    std::string table_key = make_table_key(table_name, key);
+    std::string table_key = make_table_key(table_id, key);
     
     // Remove from write set if it was there
     auto write_it = tx->write_set.find(table_key);
@@ -718,7 +960,7 @@ KVTError KVTManagerWrapper2PL::del(uint64_t tx_id, const std::string& table_name
         // If it was a new key we were going to add, just remove it
         if (write_it->second.metadata == 1) {
             // Release the lock on the placeholder
-            Table* table = get_table(table_name);
+            Table* table = get_table_by_id(table_id);
             if (table) {
                 auto it = table->data.find(key);
                 if (it != table->data.end() && it->second.metadata == static_cast<int32_t>(tx_id)) {
@@ -732,9 +974,9 @@ KVTError KVTManagerWrapper2PL::del(uint64_t tx_id, const std::string& table_name
     }
     
     // Need to acquire lock on the key to delete
-    Table* table = get_table(table_name);
+    Table* table = get_table_by_id(table_id);
     if (!table) {
-        error_msg = "Table " + table_name + " not found";
+        error_msg = "Table with ID " + std::to_string(table_id) + " not found";
         return KVTError::TABLE_NOT_FOUND;
     }
     
@@ -761,14 +1003,14 @@ KVTError KVTManagerWrapper2PL::del(uint64_t tx_id, const std::string& table_name
     return KVTError::SUCCESS;
 }
 
-KVTError KVTManagerWrapper2PL::scan(uint64_t tx_id, const std::string& table_name, const std::string& key_start,
+KVTError KVTMemManager2PL::scan(uint64_t tx_id, uint64_t table_id, const std::string& key_start,
             const std::string& key_end, size_t num_item_limit,
             std::vector<std::pair<std::string, std::string>>& results, std::string& error_msg)  {
     std::lock_guard<std::mutex> lock(global_mutex);
     
-    Table* table = get_table(table_name);
+    Table* table = get_table_by_id(table_id);
     if (!table) {
-        error_msg = "Table " + table_name + " not found";
+        error_msg = "Table with ID " + std::to_string(table_id) + " not found";
         return KVTError::TABLE_NOT_FOUND;
     }
     
@@ -795,14 +1037,14 @@ KVTError KVTManagerWrapper2PL::scan(uint64_t tx_id, const std::string& table_nam
     std::map<std::string, std::string> temp_results;
     
     // First add from write set
-    std::string table_key_start = make_table_key(table_name, key_start);
-    std::string table_key_end = make_table_key(table_name, key_end);
+    std::string table_key_start = make_table_key(table_id, key_start);
+    std::string table_key_end = make_table_key(table_id, key_end);
 
     for (auto it = tx->write_set.lower_bound(table_key_start);
             it != tx->write_set.end() && it->first < table_key_end;
             ++it) {
-        auto [tbl_name, key] = parse_table_key(it->first);
-        assert (tbl_name == table_name); 
+        auto [tbl_id, key] = parse_table_key(it->first);
+        assert (tbl_id == table_id); 
         temp_results[key] = it->second.data;
     }
     
@@ -811,7 +1053,7 @@ KVTError KVTManagerWrapper2PL::scan(uint64_t tx_id, const std::string& table_nam
     for (auto it = table->data.lower_bound(key_start);
             it != table->data.end() && it->first <= key_end;
             ++it) {
-        std::string table_key = make_table_key(table_name, it->first);
+        std::string table_key = make_table_key(table_id, it->first);
         // Skip if deleted
         if (tx->delete_set.find(table_key) != tx->delete_set.end()) {
             continue;
@@ -834,9 +1076,9 @@ KVTError KVTManagerWrapper2PL::scan(uint64_t tx_id, const std::string& table_nam
     return KVTError::SUCCESS;
 }
 
-//==================================KVT KVTManagerWrapperOCC ===========================================================
+//==================================KVT KVTMemManagerOCC ===========================================================
 
-KVTError KVTManagerWrapperOCC::commit_transaction(uint64_t tx_id, std::string& error_msg) 
+KVTError KVTMemManagerOCC::commit_transaction(uint64_t tx_id, std::string& error_msg) 
 {
     std::lock_guard<std::mutex> lock(global_mutex);
     Transaction* tx = get_transaction(tx_id);
@@ -847,8 +1089,8 @@ KVTError KVTManagerWrapperOCC::commit_transaction(uint64_t tx_id, std::string& e
     
     //first check if the readset versions are still valid
     for (const auto& read_pair : tx->read_set) {
-        auto [table_name, key] = parse_table_key(read_pair.first);
-        Table* table = get_table(table_name);
+        auto [table_id_parsed, key] = parse_table_key(read_pair.first);
+        Table* table = get_table_by_id(table_id_parsed);
         assert(table);
 
         uint64_t local_version = read_pair.second.metadata;
@@ -862,16 +1104,16 @@ KVTError KVTManagerWrapperOCC::commit_transaction(uint64_t tx_id, std::string& e
     }
     //now all readset versions are valid, so we can install the new values
     for (const auto& delete_item : tx->delete_set) {
-        auto [table_name, key] = parse_table_key(delete_item);
-        Table* table = get_table(table_name);
+        auto [table_id_parsed, key] = parse_table_key(delete_item);
+        Table* table = get_table_by_id(table_id_parsed);
         assert(table);
         auto itr = table->data.find(key);
         assert (itr != table->data.end());
         table->data.erase(itr);
     }
     for (const auto& write_pair : tx->write_set) {
-        auto [table_name, key] = parse_table_key(write_pair.first);
-        Table* table = get_table(table_name);
+        auto [table_id_parsed, key] = parse_table_key(write_pair.first);
+        Table* table = get_table_by_id(table_id_parsed);
         assert(table);
         
         std::string old_value = (table->data.find(key) != table->data.end()) ? table->data[key].data : "NEW";
@@ -884,7 +1126,7 @@ KVTError KVTManagerWrapperOCC::commit_transaction(uint64_t tx_id, std::string& e
     return KVTError::SUCCESS;
 }
         
-KVTError KVTManagerWrapperOCC::rollback_transaction(uint64_t tx_id, std::string& error_msg) 
+KVTError KVTMemManagerOCC::rollback_transaction(uint64_t tx_id, std::string& error_msg) 
 {
     std::lock_guard<std::mutex> lock(global_mutex);
     Transaction* tx = get_transaction(tx_id);
@@ -896,15 +1138,15 @@ KVTError KVTManagerWrapperOCC::rollback_transaction(uint64_t tx_id, std::string&
     return KVTError::SUCCESS;
 }
 
-KVTError KVTManagerWrapperOCC::get(uint64_t tx_id, const std::string& table_name, const std::string& key, 
+KVTError KVTMemManagerOCC::get(uint64_t tx_id, uint64_t table_id, const std::string& key, 
         std::string& value, std::string& error_msg) 
 {
     std::lock_guard<std::mutex> lock(global_mutex);
     //one shot transaction is only allowed for read only transaction.
     if (tx_id == 0) {
-        Table* table = get_table(table_name);
+        Table* table = get_table_by_id(table_id);
         if (!table) {
-            error_msg = "Table " + table_name + " not found";
+            error_msg = "Table with ID " + std::to_string(table_id) + " not found";
             return KVTError::TABLE_NOT_FOUND;
         }
         auto it = table->data.find(key);
@@ -920,7 +1162,7 @@ KVTError KVTManagerWrapperOCC::get(uint64_t tx_id, const std::string& table_name
         error_msg = "Transaction " + std::to_string(tx_id) + " not found";
         return KVTError::TRANSACTION_NOT_FOUND;
     }
-    std::string table_key = make_table_key(table_name, key);
+    std::string table_key = make_table_key(table_id, key);
     if (tx->write_set.find(table_key) != tx->write_set.end()) {
         value = tx->write_set[table_key].data;
         return KVTError::SUCCESS;
@@ -933,9 +1175,9 @@ KVTError KVTManagerWrapperOCC::get(uint64_t tx_id, const std::string& table_name
         value = tx->read_set[table_key].data;
         return KVTError::SUCCESS;
     }
-    Table* table = get_table(table_name);
+    Table* table = get_table_by_id(table_id);
     if (!table) {
-        error_msg = "Table " + table_name + " not found";
+        error_msg = "Table with ID " + std::to_string(table_id) + " not found";
         return KVTError::TABLE_NOT_FOUND;
     }
     if (table->data.find(key) == table->data.end()) {
@@ -947,14 +1189,14 @@ KVTError KVTManagerWrapperOCC::get(uint64_t tx_id, const std::string& table_name
     return KVTError::SUCCESS;
 }
 
-  KVTError KVTManagerWrapperOCC::set(uint64_t tx_id, const std::string& table_name, const std::string& key, 
+  KVTError KVTMemManagerOCC::set(uint64_t tx_id, uint64_t table_id, const std::string& key, 
            const std::string& value, std::string& error_msg) 
     {
         std::lock_guard<std::mutex> lock(global_mutex);
         if (tx_id == 0) {
-            Table* table = get_table(table_name);
+            Table* table = get_table_by_id(table_id);
             if (!table) {
-                error_msg = "Table " + table_name + " not found";
+                error_msg = "Table with ID " + std::to_string(table_id) + " not found";
                 return KVTError::TABLE_NOT_FOUND;
             }
             if (table->data.find(key) == table->data.end()) {
@@ -970,7 +1212,7 @@ KVTError KVTManagerWrapperOCC::get(uint64_t tx_id, const std::string& table_name
             error_msg = "Transaction " + std::to_string(tx_id) + " not found";
             return KVTError::TRANSACTION_NOT_FOUND;
         }
-        std::string table_key = make_table_key(table_name, key);
+        std::string table_key = make_table_key(table_id, key);
         tx->write_set[table_key] = Entry(value, 0); //no need to track metadata for write set
         auto itr = tx->delete_set.find(table_key);
         if (itr != tx->delete_set.end()) {
@@ -979,13 +1221,13 @@ KVTError KVTManagerWrapperOCC::get(uint64_t tx_id, const std::string& table_name
         return KVTError::SUCCESS;
     }
 
-KVTError KVTManagerWrapperOCC::del(uint64_t tx_id, const std::string& table_name, const std::string& key, std::string& error_msg) 
+KVTError KVTMemManagerOCC::del(uint64_t tx_id, uint64_t table_id, const std::string& key, std::string& error_msg) 
 {
     std::lock_guard<std::mutex> lock(global_mutex);
     if (tx_id == 0) {
-        Table* table = get_table(table_name);
+        Table* table = get_table_by_id(table_id);
         if (!table) {
-            error_msg = "Table " + table_name + " not found";
+            error_msg = "Table with ID " + std::to_string(table_id) + " not found";
             return KVTError::TABLE_NOT_FOUND;
         }
         if (table->data.find(key) == table->data.end()) {
@@ -1000,16 +1242,16 @@ KVTError KVTManagerWrapperOCC::del(uint64_t tx_id, const std::string& table_name
         error_msg = "Transaction " + std::to_string(tx_id) + " not found";
         return KVTError::TRANSACTION_NOT_FOUND;
     }
-    std::string table_key = make_table_key(table_name, key);
+    std::string table_key = make_table_key(table_id, key);
     auto itr = tx->write_set.find(table_key);
     if (itr != tx->write_set.end()) {
         tx->write_set.erase(itr); //delete after write, so not necessarily read from table. 
     }
     else {
         if (tx->read_set.find(table_key) == tx->read_set.end()) { //not in the read set, so need to read from table.
-            Table* table = get_table(table_name);
+            Table* table = get_table_by_id(table_id);
             if (!table) {
-                error_msg = "Table " + table_name + " not found";
+                error_msg = "Table with ID " + std::to_string(table_id) + " not found";
                 return KVTError::TABLE_NOT_FOUND;
             }
             if (table->data.find(key) == table->data.end()) {
@@ -1024,14 +1266,14 @@ KVTError KVTManagerWrapperOCC::del(uint64_t tx_id, const std::string& table_name
 }
 
 
-KVTError KVTManagerWrapperOCC::scan(uint64_t tx_id, const std::string& table_name, const std::string& key_start, 
+KVTError KVTMemManagerOCC::scan(uint64_t tx_id, uint64_t table_id, const std::string& key_start, 
         const std::string& key_end, size_t num_item_limit, 
         std::vector<std::pair<std::string, std::string>>& results, std::string& error_msg) 
 {
     std::lock_guard<std::mutex> lock(global_mutex);
-    Table* table = get_table(table_name);
+    Table* table = get_table_by_id(table_id);
     if (!table) {
-        error_msg = "Table " + table_name + " not found";
+        error_msg = "Table with ID " + std::to_string(table_id) + " not found";
         return KVTError::TABLE_NOT_FOUND;
     }
     if (tx_id == 0) {
@@ -1050,11 +1292,11 @@ KVTError KVTManagerWrapperOCC::scan(uint64_t tx_id, const std::string& table_nam
     }
     std::map<std::string, std::string> results_writes;
     {
-        std::string table_key_start = make_table_key(table_name, key_start);
-        std::string table_key_end = make_table_key(table_name, key_end);
+        std::string table_key_start = make_table_key(table_id, key_start);
+        std::string table_key_end = make_table_key(table_id, key_end);
         //first put all write_set into results
         for (auto itr = tx->write_set.lower_bound(table_key_start); itr != tx->write_set.end() && itr->first <= table_key_end; ++itr) {
-            auto [table_name, key] = parse_table_key(itr->first);
+            auto [table_id_parsed, key] = parse_table_key(itr->first);
             results_writes[key] = itr->second.data;
             if (results_writes.size() >= num_item_limit) {
                 break;
@@ -1066,7 +1308,7 @@ KVTError KVTManagerWrapperOCC::scan(uint64_t tx_id, const std::string& table_nam
     for (auto itr = table->data.lower_bound(key_start); itr != table->data.end() && itr->first <= key_end; ++itr) {
         if (results_writes.find(itr->first) != results_writes.end()) //already in write set, skip
             continue;
-        std::string table_key = make_table_key(table_name, itr->first);
+        std::string table_key = make_table_key(table_id, itr->first);
         if (tx->delete_set.find(table_key) != tx->delete_set.end()) //being deleted, skip
             continue;
         if (tx->read_set.find(table_key) == tx->read_set.end()) { //not in the read set, so need to read from table.

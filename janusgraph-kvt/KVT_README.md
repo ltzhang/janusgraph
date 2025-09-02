@@ -259,21 +259,6 @@ The KVT backend uses a **Composite Key Method** for mapping JanusGraph's key-col
   - Queries requiring column-specific access
   - Range scans over property keys
 
-## Performance Characteristics
-
-- **Read Performance**: O(1) for point queries, O(log n + k) for range scans
-- **Write Performance**: O(log n) with transactional guarantees
-- **Transaction Overhead**: Pessimistic locking ensures consistency
-- **Memory Usage**: Depends on KVT implementation backend
-- **Concurrency**: Thread-safe with 2PL (Two-Phase Locking)
-
-## Limitations and Considerations
-
-1. **Native Library Dependency**: Requires platform-specific JNI library compilation
-2. **Memory Management**: C++ backend memory managed separately from JVM
-3. **Platform Support**: Currently supports Linux, macOS, and Windows with appropriate compilation
-4. **Error Handling**: JNI boundary requires careful exception handling
-
 ## Troubleshooting
 
 ### Common Issues

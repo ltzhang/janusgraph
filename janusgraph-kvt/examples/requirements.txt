@@ -1,0 +1,6 @@
+# Python dependencies for JanusGraph KVT examples
+gremlinpython>=3.5.0
+# For benchmarking and visualization
+matplotlib>=3.3.0
+pandas>=1.3.0
+numpy>=1.21.0
