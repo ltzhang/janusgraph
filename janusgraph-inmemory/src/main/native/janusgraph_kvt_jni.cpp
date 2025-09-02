@@ -3,9 +3,10 @@
 #include <vector>
 #include <memory>
 #include <map>
+#include <set>
 #include <iostream>
 #include "../../../kvt/kvt_inc.h"
-#include "../../../kvt/janusgraph/janusgraph_kvt_adapter.h"
+#include "../../../kvt_adaptor/janusgraph_kvt_adapter.h"
 
 // Helper functions for JNI string conversion
 std::string jstringToString(JNIEnv *env, jstring jstr) {
@@ -49,13 +50,14 @@ extern "C" {
 // KVT System Management
 JNIEXPORT jboolean JNICALL Java_org_janusgraph_diskstorage_kvt_KVTStoreManager_initializeKVT(JNIEnv *env, jobject obj) {
     try {
-        bool success = kvt_initialize();
-        if (success) {
+        KVTError result = kvt_initialize();
+        if (result == KVTError::SUCCESS) {
             g_kvt_adapter = std::make_unique<janusgraph::JanusGraphKVTAdapter>();
+            return JNI_TRUE;
         }
-        return success;
+        return JNI_FALSE;
     } catch (...) {
-        return false;
+        return JNI_FALSE;
     }
 }
 
@@ -85,9 +87,10 @@ JNIEXPORT jlong JNICALL Java_org_janusgraph_diskstorage_kvt_KVTStoreManager_open
         // Create table in KVT - use range partitioning for composite keys, hash for serialized
         std::string partition_method = useCompositeKey ? "range" : "hash";
         std::string error;
-        uint64_t table_id = kvt_create_table(name, partition_method, error);
+        uint64_t table_id;
+        KVTError result = kvt_create_table(name, partition_method, table_id, error);
         
-        if (table_id == 0 && error.find("already exists") == std::string::npos) {
+        if (result != KVTError::SUCCESS && result != KVTError::TABLE_ALREADY_EXISTS) {
             std::cerr << "Failed to create KVT table " << name << ": " << error << std::endl;
             return 0;
         }
@@ -104,11 +107,11 @@ JNIEXPORT jlong JNICALL Java_org_janusgraph_diskstorage_kvt_KVTStoreManager_open
     }
 }
 
-JNIEXPORT jboolean JNICALL Java_org_janusgraph_diskstorage_kvt_KVTStoreManager_exists(JNIEnv *env, jobject obj) {
+JNIEXPORT jboolean JNICALL Java_org_janusgraph_diskstorage_kvt_KVTStoreManager_nativeExists(JNIEnv *env, jobject obj) {
     return g_kvt_adapter != nullptr && !g_store_names.empty();
 }
 
-JNIEXPORT void JNICALL Java_org_janusgraph_diskstorage_kvt_KVTStoreManager_clearStorage(JNIEnv *env, jobject obj) {
+JNIEXPORT void JNICALL Java_org_janusgraph_diskstorage_kvt_KVTStoreManager_nativeClearStorage(JNIEnv *env, jobject obj) {
     // Since KVT doesn't have a global clear, we'll clear each table individually
     // This would need to be implemented in KVT if needed
 }
@@ -117,9 +120,11 @@ JNIEXPORT void JNICALL Java_org_janusgraph_diskstorage_kvt_KVTStoreManager_clear
 JNIEXPORT jlong JNICALL Java_org_janusgraph_diskstorage_kvt_KVTKeyColumnValueStore_beginTransaction(JNIEnv *env, jobject obj) {
     try {
         std::string error;
-        uint64_t tx_id = kvt_start_transaction(error);
-        if (tx_id == 0) {
+        uint64_t tx_id;
+        KVTError result = kvt_start_transaction(tx_id, error);
+        if (result != KVTError::SUCCESS) {
             std::cerr << "Failed to start transaction: " << error << std::endl;
+            return 0;
         }
         return static_cast<jlong>(tx_id);
     } catch (...) {
@@ -131,7 +136,7 @@ JNIEXPORT jboolean JNICALL Java_org_janusgraph_diskstorage_kvt_KVTKeyColumnValue
     JNIEnv *env, jobject obj, jlong txId) {
     try {
         std::string error;
-        return kvt_commit_transaction(static_cast<uint64_t>(txId), error);
+        return kvt_commit_transaction(static_cast<uint64_t>(txId), error) == KVTError::SUCCESS;
     } catch (...) {
         return false;
     }
@@ -141,7 +146,7 @@ JNIEXPORT jboolean JNICALL Java_org_janusgraph_diskstorage_kvt_KVTKeyColumnValue
     JNIEnv *env, jobject obj, jlong txId) {
     try {
         std::string error;
-        return kvt_rollback_transaction(static_cast<uint64_t>(txId), error);
+        return kvt_rollback_transaction(static_cast<uint64_t>(txId), error) == KVTError::SUCCESS;
     } catch (...) {
         return false;
     }

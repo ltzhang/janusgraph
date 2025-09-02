@@ -41,7 +41,14 @@ struct ColumnValue {
     ColumnValue() = default;
     ColumnValue(const std::string& c, const std::string& v) : column(c), value(v) {}
     ColumnValue(const std::string&& c, const std::string&& v) : column(std::move(c)), value(std::move(v)) {}
+    ColumnValue(const ColumnValue& other) = default;
     ColumnValue(ColumnValue&& other) noexcept : column(std::move(other.column)), value(std::move(other.value)) {}
+    ColumnValue& operator=(const ColumnValue& other) = default;
+    ColumnValue& operator=(ColumnValue&& other) noexcept {
+        column = std::move(other.column);
+        value = std::move(other.value);
+        return *this;
+    }
     bool operator < (const ColumnValue& other) const {
         return column < other.column;
     }
@@ -172,7 +179,7 @@ public:
         if (g_use_composite_key_method) {
             // Method 2: Use composite key
             std::string composite_key = serialization::make_composite_key(key, column);
-            return kvt_set(tx_id, table_name, composite_key, value, error_msg);
+            return kvt_set(tx_id, table_name, composite_key, value, error_msg) == KVTError::SUCCESS;
         } else {
             // Method 1: Serialize all columns in value
             // First, get existing columns
@@ -195,7 +202,7 @@ public:
             }
             // Serialize and store
             std::string serialized = serialization::serialize_columns(columns);
-            return kvt_set(tx_id, table_name, key, serialized, error_msg);
+            return kvt_set(tx_id, table_name, key, serialized, error_msg) == KVTError::SUCCESS;
         }
     }
     
@@ -215,11 +222,11 @@ public:
         if (g_use_composite_key_method) {
             // Method 2: Use composite key
             std::string composite_key = serialization::make_composite_key(key, column);
-            return kvt_get(tx_id, table_name, composite_key, value, error_msg);
+            return kvt_get(tx_id, table_name, composite_key, value, error_msg) == KVTError::SUCCESS;
         } else {
             // Method 1: Deserialize and search
             std::string serialized;
-            if (!kvt_get(tx_id, table_name, key, serialized, error_msg)) {
+            if (kvt_get(tx_id, table_name, key, serialized, error_msg) != KVTError::SUCCESS) {
                 return false;
             }
             
@@ -255,7 +262,7 @@ public:
         if (g_use_composite_key_method) {
             // Method 2: Delete composite key
             std::string composite_key = serialization::make_composite_key(key, column);
-            return kvt_del(tx_id, table_name, composite_key, error_msg);
+            return kvt_del(tx_id, table_name, composite_key, error_msg) == KVTError::SUCCESS;
         } else {
             // Method 1: Remove from serialized columns (assuming columns are sorted)
             std::vector<ColumnValue> columns = get_all_columns(tx_id, table_name, key, error_msg);
@@ -276,11 +283,11 @@ public:
             
             if (columns.empty()) {
                 // Delete the entire key if no columns left
-                return kvt_del(tx_id, table_name, key, error_msg);
+                return kvt_del(tx_id, table_name, key, error_msg) == KVTError::SUCCESS;
             } else {
                 // Update with remaining columns
                 std::string serialized = serialization::serialize_columns(columns);
-                return kvt_set(tx_id, table_name, key, serialized, error_msg);
+                return kvt_set(tx_id, table_name, key, serialized, error_msg) == KVTError::SUCCESS;
             }
         }
     }
@@ -299,7 +306,7 @@ public:
             std::string end_key = key + char(KEY_COLUMN_SEPARATOR + 1); // Next character after separator
             
             std::vector<std::pair<std::string, std::string>> scan_results;
-            if (kvt_scan(tx_id, table_name, start_key, end_key, 10000, scan_results, error_msg)) {
+            if (kvt_scan(tx_id, table_name, start_key, end_key, 10000, scan_results, error_msg) == KVTError::SUCCESS) {
                 for (const auto& [composite_key, value] : scan_results) {
                     auto [extracted_key, column] = serialization::split_composite_key(composite_key);
                     CHECK(extracted_key == key, "Composite key is not extracted correctly");
@@ -309,7 +316,7 @@ public:
         } else {
             // Method 1: Deserialize all columns
             std::string serialized;
-            if (kvt_get(tx_id, table_name, key, serialized, error_msg)) {
+            if (kvt_get(tx_id, table_name, key, serialized, error_msg) == KVTError::SUCCESS) {
                 result = serialization::deserialize_columns(serialized);
             }
         }
@@ -334,14 +341,14 @@ public:
             
             for (const auto& cv : columns) {
                 std::string composite_key = serialization::make_composite_key(key, cv.column);
-                if (!kvt_del(tx_id, table_name, composite_key, error_msg)) {
+                if (kvt_del(tx_id, table_name, composite_key, error_msg) != KVTError::SUCCESS) {
                     return false;
                 }
             }
             return true;
         } else {
             // Method 1: Delete the single key
-            return kvt_del(tx_id, table_name, key, error_msg);
+            return kvt_del(tx_id, table_name, key, error_msg) == KVTError::SUCCESS;
         }
     }
     
@@ -366,7 +373,7 @@ public:
             // Method 2: Set each composite key
             for (const auto& cv : columns) {
                 std::string composite_key = serialization::make_composite_key(key, cv.column);
-                if (!kvt_set(tx_id, table_name, composite_key, cv.value, error_msg)) {
+                if (kvt_set(tx_id, table_name, composite_key, cv.value, error_msg) != KVTError::SUCCESS) {
                     return false;
                 }
             }
@@ -391,8 +398,94 @@ public:
             }
             // Serialize and store
             std::string serialized = serialization::serialize_columns(merged);
-            return kvt_set(tx_id, table_name, key, serialized, error_msg);
+            return kvt_set(tx_id, table_name, key, serialized, error_msg) == KVTError::SUCCESS;
         }
+    }
+    
+    /**
+     * Batch operations support for JanusGraph adapter
+     * Allows multiple column operations to be executed atomically
+     */
+    struct JanusGraphBatchOp {
+        enum OpType { GET_COLUMN, SET_COLUMN, DELETE_COLUMN };
+        OpType type;
+        std::string key;
+        std::string column;
+        std::string value;  // For SET operations
+    };
+    
+    struct JanusGraphBatchResult {
+        bool success;
+        std::string value;  // For GET operations
+        std::string error_msg;
+    };
+    
+    /**
+     * Execute batch operations using KVT batch API
+     * Converts JanusGraph column operations to KVT operations
+     */
+    bool batch_execute(uint64_t tx_id, const std::string& table_name,
+                       const std::vector<JanusGraphBatchOp>& jg_ops,
+                       std::vector<JanusGraphBatchResult>& jg_results,
+                       std::string& error_msg) {
+        
+        KVTBatchOps kvt_ops;
+        KVTBatchResults kvt_results;
+        
+        // Convert JanusGraph operations to KVT operations
+        for (const auto& jg_op : jg_ops) {
+            KVTOp kvt_op;
+            kvt_op.table_name = table_name;
+            
+            if (g_use_composite_key_method) {
+                // Method 2: Use composite keys
+                kvt_op.key = serialization::make_composite_key(jg_op.key, jg_op.column);
+                
+                switch (jg_op.type) {
+                    case JanusGraphBatchOp::GET_COLUMN:
+                        kvt_op.op = OP_GET;
+                        break;
+                    case JanusGraphBatchOp::SET_COLUMN:
+                        kvt_op.op = OP_SET;
+                        kvt_op.value = jg_op.value;
+                        break;
+                    case JanusGraphBatchOp::DELETE_COLUMN:
+                        kvt_op.op = OP_DEL;
+                        break;
+                }
+            } else {
+                // Method 1: Serialized columns - requires special handling
+                // For now, we'll use the composite key method for batch ops
+                // Full implementation would require read-modify-write for each key
+                error_msg = "Batch operations not yet fully supported for serialized column method";
+                return false;
+            }
+            
+            kvt_ops.push_back(kvt_op);
+        }
+        
+        // Execute batch
+        KVTError result = kvt_batch_execute(tx_id, kvt_ops, kvt_results, error_msg);
+        
+        // Convert results back
+        jg_results.clear();
+        for (size_t i = 0; i < kvt_results.size(); ++i) {
+            JanusGraphBatchResult jg_result;
+            jg_result.success = (kvt_results[i].error == KVTError::SUCCESS);
+            
+            if (jg_ops[i].type == JanusGraphBatchOp::GET_COLUMN && jg_result.success) {
+                jg_result.value = kvt_results[i].value;
+            }
+            
+            if (!jg_result.success) {
+                // Convert error code to message
+                jg_result.error_msg = "Operation " + std::to_string(i) + " failed";
+            }
+            
+            jg_results.push_back(jg_result);
+        }
+        
+        return result == KVTError::SUCCESS || result == KVTError::BATCH_NOT_FULLY_SUCCESS;
     }
 };
 

@@ -24,16 +24,17 @@ JNI_PLATFORM_INCLUDE = $(JNI_INCLUDE)/$(JNI_PLATFORM)
 # Compiler and flags
 CXX = g++
 CXXFLAGS = -Wall -Wextra -O2 -fPIC -std=c++17
-INCLUDES = -I$(JNI_INCLUDE) -I$(JNI_PLATFORM_INCLUDE) -I../../.. -I../../../kvt -I../../../kvt/janusgraph
+INCLUDES = -I$(JNI_INCLUDE) -I$(JNI_PLATFORM_INCLUDE) -I../../.. -I../../../kvt -I../../../kvt_adaptor
 LDFLAGS = -shared
 
-# Source files
+# Source and object files
 KVT_DIR = ../../../kvt
-SOURCES = janusgraph_kvt_jni.cpp \
-          $(KVT_DIR)/kvt_mem.cpp
+KVT_ADAPTOR_DIR = ../../../kvt_adaptor
+SOURCES = janusgraph_kvt_jni.cpp
 
-# Object files
-OBJECTS = $(SOURCES:.cpp=.o)
+# Object files - we compile our JNI code and link with pre-compiled kvt_mem.o
+JNI_OBJECTS = janusgraph_kvt_jni.o
+KVT_OBJECTS = $(KVT_DIR)/kvt_mem.o
 
 # Output library
 TARGET = libjanusgraph_kvt.$(SHARED_LIB_EXT)
@@ -42,7 +43,7 @@ TARGET = libjanusgraph_kvt.$(SHARED_LIB_EXT)
 all: $(TARGET)
 
 # Build the shared library
-$(TARGET): $(OBJECTS)
+$(TARGET): $(JNI_OBJECTS) $(KVT_OBJECTS)
 	@echo "Linking JNI library: $@"
 	$(CXX) $(LDFLAGS) -o $@ $^
 
@@ -71,7 +72,7 @@ test: $(TARGET)
 # Clean build artifacts
 clean:
 	@echo "Cleaning build artifacts..."
-	rm -f $(OBJECTS) $(TARGET)
+	rm -f $(JNI_OBJECTS) $(TARGET)
 	rm -f *.h
 
 # Install library to system location (optional)

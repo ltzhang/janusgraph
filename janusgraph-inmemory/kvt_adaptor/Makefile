@@ -1,9 +1,9 @@
 # Makefile for JanusGraph KVT Adapter
-# This builds the adapter from within the janusgraph subdirectory
+# This builds the adapter from the kvt_adaptor directory
 
 CXX = g++
 CXXFLAGS = -std=c++17 -Wall -Wextra -O2 -g
-KVT_DIR = ..
+KVT_DIR = ../kvt
 
 # Include directories
 INCLUDES = -I$(KVT_DIR)

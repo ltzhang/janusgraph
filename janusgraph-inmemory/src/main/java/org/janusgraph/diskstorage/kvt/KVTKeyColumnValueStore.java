@@ -29,7 +29,12 @@ import org.janusgraph.diskstorage.keycolumnvalue.KeySlicesIterator;
 import org.janusgraph.diskstorage.keycolumnvalue.MultiSlicesQuery;
 import org.janusgraph.diskstorage.keycolumnvalue.SliceQuery;
 import org.janusgraph.diskstorage.keycolumnvalue.StoreTransaction;
+import org.janusgraph.diskstorage.util.StaticArrayBuffer;
 import org.janusgraph.diskstorage.util.RecordIterator;
+import org.janusgraph.diskstorage.util.EntryArrayList;
+import org.janusgraph.diskstorage.PermanentBackendException;
+
+import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,9 +89,9 @@ public class KVTKeyColumnValueStore implements KeyColumnValueStore {
         
         try {
             byte[] keyBytes = query.getKey().as(StaticBuffer.ARRAY_FACTORY);
-            byte[] startBytes = query.getSliceQuery().getSliceStart().as(StaticBuffer.ARRAY_FACTORY);
-            byte[] endBytes = query.getSliceQuery().getSliceEnd().as(StaticBuffer.ARRAY_FACTORY);
-            int limit = query.getSliceQuery().hasLimit() ? query.getSliceQuery().getLimit() : -1;
+            byte[] startBytes = query.getSliceStart().as(StaticBuffer.ARRAY_FACTORY);
+            byte[] endBytes = query.getSliceEnd().as(StaticBuffer.ARRAY_FACTORY);
+            int limit = query.hasLimit() ? query.getLimit() : -1;
 
             Entry[] entries = getSlice(storeId, txId, keyBytes, startBytes, endBytes, limit);
             
@@ -94,11 +99,11 @@ public class KVTKeyColumnValueStore implements KeyColumnValueStore {
                 return EntryList.EMPTY_LIST;
             }
 
-            return EntryList.of(entries);
+            return EntryArrayList.of(Arrays.asList(entries));
             
         } catch (Exception e) {
             log.error("Error in getSlice for store {}", name, e);
-            throw new BackendException("Native KVT getSlice failed", e);
+            throw new PermanentBackendException("Native KVT getSlice failed", e);
         }
     }
 
@@ -151,7 +156,7 @@ public class KVTKeyColumnValueStore implements KeyColumnValueStore {
             
         } catch (Exception e) {
             log.error("Error in mutate for store {}", name, e);
-            throw new BackendException("Native KVT mutate failed", e);
+            throw new PermanentBackendException("Native KVT mutate failed", e);
         }
     }
 
@@ -180,11 +185,12 @@ public class KVTKeyColumnValueStore implements KeyColumnValueStore {
 
             byte[][] keys = getKeys(storeId, txId, keyStart, keyEnd, colStart, colEnd, limit);
             
-            return new KVTKeyIterator(keys, query.getSliceQuery(), txh);
+            // KeyRangeQuery extends SliceQuery, so we can pass it directly
+            return new KVTKeyIterator(keys, query, txh);
             
         } catch (Exception e) {
             log.error("Error in getKeys for store {}", name, e);
-            throw new BackendException("Native KVT getKeys failed", e);
+            throw new PermanentBackendException("Native KVT getKeys failed", e);
         }
     }
 
@@ -209,7 +215,7 @@ public class KVTKeyColumnValueStore implements KeyColumnValueStore {
             
         } catch (Exception e) {
             log.error("Error in getKeys (unordered) for store {}", name, e);
-            throw new BackendException("Native KVT getKeys failed", e);
+            throw new PermanentBackendException("Native KVT getKeys failed", e);
         }
     }
 
@@ -247,7 +253,7 @@ public class KVTKeyColumnValueStore implements KeyColumnValueStore {
             log.debug("Closed KVT store: {}", name);
             
         } catch (Exception e) {
-            throw new BackendException("Error closing KVT store: " + name, e);
+            throw new PermanentBackendException("Error closing KVT store: " + name, e);
         }
     }
 
@@ -264,9 +270,9 @@ public class KVTKeyColumnValueStore implements KeyColumnValueStore {
                     throw new RuntimeException("Failed to begin native transaction");
                 }
                 
-                // Register commit/rollback hooks
-                txh.getConfiguration().getCustomOptions().put("kvt.store.instance", this);
-                txh.getConfiguration().getCustomOptions().put("kvt.tx.id", nativeTxId);
+                // Register commit/rollback hooks - store in transient state if needed
+                // txh.getConfiguration().getCustomOptions().put("kvt.store.instance", this);
+                // txh.getConfiguration().getCustomOptions().put("kvt.tx.id", nativeTxId);
                 
                 log.debug("Created native transaction {} for store {}", nativeTxId, name);
                 return nativeTxId;
@@ -347,7 +353,7 @@ public class KVTKeyColumnValueStore implements KeyColumnValueStore {
                 throw new IllegalStateException("No more keys available");
             }
             
-            return StaticBuffer.of(keys[currentIndex++]);
+            return new StaticArrayBuffer(keys[currentIndex++]);
         }
 
         @Override
@@ -357,7 +363,7 @@ public class KVTKeyColumnValueStore implements KeyColumnValueStore {
             }
             
             // Get entries for the current key (previous key from next())
-            StaticBuffer currentKey = StaticBuffer.of(keys[currentIndex - 1]);
+            StaticBuffer currentKey = new StaticArrayBuffer(keys[currentIndex - 1]);
             KeySliceQuery keyQuery = new KeySliceQuery(currentKey, columnSlice);
             
             try {

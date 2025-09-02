@@ -16,10 +16,13 @@ package org.janusgraph.diskstorage.kvt;
 
 import com.google.common.base.Preconditions;
 import org.janusgraph.diskstorage.BackendException;
+import org.janusgraph.diskstorage.PermanentBackendException;
 import org.janusgraph.diskstorage.BaseTransactionConfig;
 import org.janusgraph.diskstorage.StaticBuffer;
 import org.janusgraph.diskstorage.StoreMetaData;
 import org.janusgraph.diskstorage.common.AbstractStoreTransaction;
+import org.janusgraph.diskstorage.configuration.ConfigNamespace;
+import org.janusgraph.diskstorage.configuration.ConfigOption;
 import org.janusgraph.diskstorage.configuration.Configuration;
 import org.janusgraph.diskstorage.keycolumnvalue.KCVMutation;
 import org.janusgraph.diskstorage.keycolumnvalue.KeyColumnValueStore;
@@ -52,8 +55,13 @@ public class KVTStoreManager implements KeyColumnValueStoreManager {
 
     private static final Logger log = LoggerFactory.getLogger(KVTStoreManager.class);
 
-    public static final String KVT_USE_COMPOSITE_KEY = "kvt.use-composite-key";
-    public static final boolean KVT_USE_COMPOSITE_KEY_DEFAULT = false;
+    public static final ConfigNamespace KVT_NS = new ConfigNamespace(
+        GraphDatabaseConfiguration.STORAGE_NS, "kvt", "KVT storage backend options");
+
+    public static final ConfigOption<Boolean> KVT_USE_COMPOSITE_KEY = new ConfigOption<>(
+        KVT_NS, "use-composite-key",
+        "Use composite key method (true) or serialized columns method (false)",
+        ConfigOption.Type.LOCAL, false);
 
     private final ConcurrentHashMap<String, KVTKeyColumnValueStore> stores;
     private final StoreFeatures features;
@@ -74,8 +82,8 @@ public class KVTStoreManager implements KeyColumnValueStoreManager {
     private native boolean initializeKVT();
     private native void shutdownKVT();
     private native long openDatabase(String storeName, boolean useCompositeKey);
-    private native boolean exists();
-    private native void clearStorage();
+    private native boolean nativeExists();
+    private native void nativeClearStorage();
 
     public KVTStoreManager() {
         this(Configuration.EMPTY);
@@ -83,7 +91,7 @@ public class KVTStoreManager implements KeyColumnValueStoreManager {
 
     public KVTStoreManager(final Configuration configuration) {
         this.stores = new ConcurrentHashMap<>();
-        this.useCompositeKey = configuration.get(KVT_USE_COMPOSITE_KEY, KVT_USE_COMPOSITE_KEY_DEFAULT);
+        this.useCompositeKey = configuration.get(KVT_USE_COMPOSITE_KEY);
 
         // Initialize native KVT system
         if (!initializeKVT()) {
@@ -136,7 +144,7 @@ public class KVTStoreManager implements KeyColumnValueStoreManager {
             isOpen = false;
             log.info("KVTStoreManager closed successfully");
         } catch (Exception e) {
-            throw new BackendException("Error closing KVT store manager", e);
+            throw new PermanentBackendException("Error closing KVT store manager", e);
         }
     }
 
@@ -151,11 +159,11 @@ public class KVTStoreManager implements KeyColumnValueStoreManager {
             }
             
             // Call native clear
-            clearStorage();
+            nativeClearStorage();
             
             log.info("KVT storage cleared");
         } catch (Exception e) {
-            throw new BackendException("Error clearing KVT storage", e);
+            throw new PermanentBackendException("Error clearing KVT storage", e);
         }
     }
 
@@ -164,7 +172,7 @@ public class KVTStoreManager implements KeyColumnValueStoreManager {
         if (!isOpen) {
             return false;
         }
-        return exists();
+        return nativeExists();
     }
 
     @Override
@@ -185,7 +193,7 @@ public class KVTStoreManager implements KeyColumnValueStoreManager {
             // Open database in native KVT
             long storeId = openDatabase(name, useCompositeKey);
             if (storeId == 0) {
-                throw new BackendException("Failed to open KVT database: " + name);
+                throw new PermanentBackendException("Failed to open KVT database: " + name);
             }
 
             KVTKeyColumnValueStore store = new KVTKeyColumnValueStore(name, storeId);
@@ -201,7 +209,7 @@ public class KVTStoreManager implements KeyColumnValueStoreManager {
             return store;
             
         } catch (Exception e) {
-            throw new BackendException("Error opening KVT database: " + name, e);
+            throw new PermanentBackendException("Error opening KVT database: " + name, e);
         }
     }
 

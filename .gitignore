@@ -53,4 +53,6 @@ janusgraph-benchmark/benchmark.json
 janusgraph-inmemory/java_test/lib/*
 janusgraph-inmemory/java_test/build/*
 janusgraph-inmemory/cpp_memdb/test_memdb
-janusgraph-inmemory/cpp_memdb/*.o
+*.o
+*.so
+

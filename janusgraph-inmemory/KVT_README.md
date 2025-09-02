@@ -54,8 +54,8 @@ janusgraph-inmemory/
 ├── kvt/                                 # KVT C++ implementation
 │   ├── kvt_inc.h                        # KVT public API
 │   ├── kvt_mem.cpp/.h                   # Memory implementation
-│   └── janusgraph/
-│       └── janusgraph_kvt_adapter.h     # JanusGraph adapter
+└── kvt_adaptor/
+│       └── janusgraph_kvt_adapter.h    # JanusGraph adapter
 ├── build-kvt.sh                        # Master build script
 └── KVT_README.md                       # This file
 ```

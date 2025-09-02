@@ -39,8 +39,9 @@ void test_basic_operations(const std::string& method_name) {
     std::string table_name = g_use_composite_key_method ? "composite_test" : "serialized_test";
     std::string partition_method = g_use_composite_key_method ? "range" : "hash";
     
-    uint64_t table_id = kvt_create_table(table_name, partition_method, error);
-    if (table_id == 0 && error.find("already exists") == std::string::npos) {
+    uint64_t table_id;
+    KVTError result = kvt_create_table(table_name, partition_method, table_id, error);
+    if (result != KVTError::SUCCESS && result != KVTError::TABLE_ALREADY_EXISTS) {
         std::cerr << "Failed to create table: " << error << std::endl;
         return;
     }
@@ -102,8 +103,9 @@ void test_transactions(const std::string& method_name) {
     std::string table_name = g_use_composite_key_method ? "composite_test" : "serialized_test";
     
     // Start a transaction
-    uint64_t tx_id = kvt_start_transaction(error);
-    if (tx_id == 0) {
+    uint64_t tx_id;
+    KVTError tx_result = kvt_start_transaction(tx_id, error);
+    if (tx_result != KVTError::SUCCESS) {
         std::cerr << "Failed to start transaction: " << error << std::endl;
         return;
     }
@@ -118,7 +120,7 @@ void test_transactions(const std::string& method_name) {
     print_test_result("Read within transaction", test1 && value == "Bob");
     
     // Commit transaction
-    bool test2 = kvt_commit_transaction(tx_id, error);
+    bool test2 = kvt_commit_transaction(tx_id, error) == KVTError::SUCCESS;
     print_test_result("Commit transaction", test2);
     
     // Verify data persisted
@@ -126,7 +128,7 @@ void test_transactions(const std::string& method_name) {
     print_test_result("Verify data after commit", test3 && value == "Bob");
     
     // Test rollback
-    tx_id = kvt_start_transaction(error);
+    kvt_start_transaction(tx_id, error);
     adapter.set_column(tx_id, table_name, "vertex:3", "name", "Charlie", error);
     kvt_rollback_transaction(tx_id, error);
     
@@ -187,7 +189,8 @@ void test_performance(const std::string& method_name) {
     std::string table_name = g_use_composite_key_method ? "composite_perf" : "serialized_perf";
     
     // Create table for performance testing
-    kvt_create_table(table_name, g_use_composite_key_method ? "range" : "hash", error);
+    uint64_t table_id;
+    kvt_create_table(table_name, g_use_composite_key_method ? "range" : "hash", table_id, error);
     
     const int num_keys = 100;
     const int num_columns_per_key = 10;
@@ -247,7 +250,8 @@ void test_edge_cases(const std::string& method_name) {
     std::string error;
     std::string table_name = g_use_composite_key_method ? "composite_edge" : "serialized_edge";
     
-    kvt_create_table(table_name, g_use_composite_key_method ? "range" : "hash", error);
+    uint64_t table_id;
+    kvt_create_table(table_name, g_use_composite_key_method ? "range" : "hash", table_id, error);
     
     // Test 1: Empty column name
     bool test1 = adapter.set_column(0, table_name, "key1", "", "empty_column", error);
@@ -285,13 +289,82 @@ void test_edge_cases(const std::string& method_name) {
     print_test_result("Delete non-existent column", test6);
 }
 
+void test_new_batch_api(const std::string& method_name) {
+    print_separator("New Batch API Test - " + method_name);
+    
+    // Only test with composite key method as batch ops are not fully supported for serialized
+    if (!g_use_composite_key_method) {
+        std::cout << "  Skipping batch API test for serialized column method" << std::endl;
+        return;
+    }
+    
+    JanusGraphKVTAdapter adapter;
+    std::string error;
+    std::string table_name = "batch_api_test";
+    
+    uint64_t table_id;
+    kvt_create_table(table_name, "range", table_id, error);
+    
+    // Prepare batch operations
+    std::vector<JanusGraphKVTAdapter::JanusGraphBatchOp> batch_ops;
+    
+    // Add SET operations
+    batch_ops.push_back({JanusGraphKVTAdapter::JanusGraphBatchOp::SET_COLUMN, "batch_key1", "col1", "value1"});
+    batch_ops.push_back({JanusGraphKVTAdapter::JanusGraphBatchOp::SET_COLUMN, "batch_key1", "col2", "value2"});
+    batch_ops.push_back({JanusGraphKVTAdapter::JanusGraphBatchOp::SET_COLUMN, "batch_key2", "col1", "value3"});
+    
+    // Execute batch
+    std::vector<JanusGraphKVTAdapter::JanusGraphBatchResult> results;
+    bool batch_result = adapter.batch_execute(0, table_name, batch_ops, results, error);
+    print_test_result("Batch SET operations", batch_result && results.size() == 3);
+    
+    // Verify all succeeded
+    bool all_success = true;
+    for (const auto& result : results) {
+        if (!result.success) all_success = false;
+    }
+    print_test_result("All batch SETs succeeded", all_success);
+    
+    // Test batch GET operations
+    batch_ops.clear();
+    batch_ops.push_back({JanusGraphKVTAdapter::JanusGraphBatchOp::GET_COLUMN, "batch_key1", "col1", ""});
+    batch_ops.push_back({JanusGraphKVTAdapter::JanusGraphBatchOp::GET_COLUMN, "batch_key1", "col2", ""});
+    batch_ops.push_back({JanusGraphKVTAdapter::JanusGraphBatchOp::GET_COLUMN, "batch_key2", "col1", ""});
+    
+    results.clear();
+    batch_result = adapter.batch_execute(0, table_name, batch_ops, results, error);
+    print_test_result("Batch GET operations", batch_result && results.size() == 3);
+    
+    // Verify values
+    bool values_correct = results[0].value == "value1" && 
+                         results[1].value == "value2" &&
+                         results[2].value == "value3";
+    print_test_result("Batch GET values correct", values_correct);
+    
+    // Test mixed operations
+    batch_ops.clear();
+    batch_ops.push_back({JanusGraphKVTAdapter::JanusGraphBatchOp::SET_COLUMN, "batch_key3", "col1", "new_value"});
+    batch_ops.push_back({JanusGraphKVTAdapter::JanusGraphBatchOp::GET_COLUMN, "batch_key1", "col1", ""});
+    batch_ops.push_back({JanusGraphKVTAdapter::JanusGraphBatchOp::DELETE_COLUMN, "batch_key1", "col2", ""});
+    batch_ops.push_back({JanusGraphKVTAdapter::JanusGraphBatchOp::GET_COLUMN, "batch_key3", "col1", ""});
+    
+    results.clear();
+    batch_result = adapter.batch_execute(0, table_name, batch_ops, results, error);
+    print_test_result("Mixed batch operations", batch_result);
+    
+    // Verify deleted column is gone
+    std::string value;
+    bool deleted = !adapter.get_column(0, table_name, "batch_key1", "col2", value, error);
+    print_test_result("Batch DELETE verified", deleted);
+}
+
 int main() {
     std::cout << "==================================" << std::endl;
     std::cout << "  JanusGraph KVT Adapter Test    " << std::endl;
     std::cout << "==================================" << std::endl;
     
     // Initialize KVT system
-    if (!kvt_initialize()) {
+    if (kvt_initialize() != KVTError::SUCCESS) {
         std::cerr << "Failed to initialize KVT system!" << std::endl;
         return 1;
     }
@@ -319,6 +392,7 @@ int main() {
         test_basic_operations("Composite Keys");
         test_transactions("Composite Keys");
         test_batch_operations("Composite Keys");
+        test_new_batch_api("Composite Keys");
         test_performance("Composite Keys");
         test_edge_cases("Composite Keys");
         

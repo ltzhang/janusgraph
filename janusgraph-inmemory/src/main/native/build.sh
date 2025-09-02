@@ -61,12 +61,19 @@ echo "  Platform: $JNI_PLATFORM_INCLUDE"
 
 # Check KVT source files
 KVT_DIR="../../../kvt"
-if [[ ! -f "$KVT_DIR/kvt_inc.h" ]] || [[ ! -f "$KVT_DIR/kvt_mem.cpp" ]]; then
+KVT_ADAPTOR_DIR="../../../kvt_adaptor"
+if [[ ! -f "$KVT_DIR/kvt_inc.h" ]] || [[ ! -f "$KVT_DIR/kvt_mem.o" ]]; then
     echo -e "${RED}Error: KVT source files not found${NC}"
     echo "Expected files:"
     echo "  $KVT_DIR/kvt_inc.h"
-    echo "  $KVT_DIR/kvt_mem.cpp"
-    echo "  $KVT_DIR/janusgraph/janusgraph_kvt_adapter.h"
+    echo "  $KVT_DIR/kvt_mem.o"
+    exit 1
+fi
+
+if [[ ! -f "$KVT_ADAPTOR_DIR/janusgraph_kvt_adapter.h" ]]; then
+    echo -e "${RED}Error: KVT adapter header not found${NC}"
+    echo "Expected file:"
+    echo "  $KVT_ADAPTOR_DIR/janusgraph_kvt_adapter.h"
     exit 1
 fi
 

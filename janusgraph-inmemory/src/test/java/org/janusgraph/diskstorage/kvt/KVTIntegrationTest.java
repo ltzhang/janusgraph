@@ -20,6 +20,8 @@ import org.janusgraph.diskstorage.EntryList;
 import org.janusgraph.diskstorage.StaticBuffer;
 import org.janusgraph.diskstorage.configuration.Configuration;
 import org.janusgraph.diskstorage.configuration.ModifiableConfiguration;
+import org.janusgraph.diskstorage.configuration.BasicConfiguration;
+import org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration;
 import org.janusgraph.diskstorage.keycolumnvalue.KeyColumnValueStore;
 import org.janusgraph.diskstorage.keycolumnvalue.KeySliceQuery;
 import org.janusgraph.diskstorage.keycolumnvalue.SliceQuery;
@@ -54,12 +56,12 @@ public class KVTIntegrationTest {
     public void setUp() {
         try {
             // Test composite key method
-            ModifiableConfiguration compositeConfig = new ModifiableConfiguration();
+            ModifiableConfiguration compositeConfig = GraphDatabaseConfiguration.buildGraphConfiguration();
             compositeConfig.set(KVTStoreManager.KVT_USE_COMPOSITE_KEY, true);
             compositeKeyManager = new KVTStoreManager(compositeConfig);
 
             // Test serialized column method
-            ModifiableConfiguration serializedConfig = new ModifiableConfiguration();
+            ModifiableConfiguration serializedConfig = GraphDatabaseConfiguration.buildGraphConfiguration();
             serializedConfig.set(KVTStoreManager.KVT_USE_COMPOSITE_KEY, false);
             serializedManager = new KVTStoreManager(serializedConfig);
             
@@ -102,30 +104,30 @@ public class KVTIntegrationTest {
     private void testStorageMethod(KVTStoreManager manager, String methodName) throws BackendException {
         System.out.println("Testing " + methodName + " method...");
         
-        KeyColumnValueStore store = manager.openDatabase("test_" + methodName.toLowerCase().replace(" ", "_"));
+        KeyColumnValueStore store = manager.openDatabase("test_" + methodName.toLowerCase().replace(" ", "_"), null);
         StoreTransaction tx = manager.beginTransaction(new StandardBaseTransactionConfig.Builder()
             .timestampProvider(TimestampProviders.MICRO)
             .build());
 
         try {
             // Test data
-            StaticBuffer key = StaticArrayBuffer.of("vertex:1".getBytes());
-            StaticBuffer col1 = StaticArrayBuffer.of("name".getBytes());
-            StaticBuffer val1 = StaticArrayBuffer.of("Alice".getBytes());
-            StaticBuffer col2 = StaticArrayBuffer.of("age".getBytes());
-            StaticBuffer val2 = StaticArrayBuffer.of("30".getBytes());
+            StaticBuffer key = new StaticArrayBuffer("vertex:1".getBytes());
+            StaticBuffer col1 = new StaticArrayBuffer("name".getBytes());
+            StaticBuffer val1 = new StaticArrayBuffer("Alice".getBytes());
+            StaticBuffer col2 = new StaticArrayBuffer("age".getBytes());
+            StaticBuffer val2 = new StaticArrayBuffer("30".getBytes());
 
             // Test single insertion
             List<Entry> additions = Arrays.asList(
-                new StaticArrayEntry(col1, val1),
-                new StaticArrayEntry(col2, val2)
+                StaticArrayEntry.of(col1, val1),
+                StaticArrayEntry.of(col2, val2)
             );
             
             store.mutate(key, additions, Collections.emptyList(), tx);
 
             // Test retrieval
-            SliceQuery slice = new SliceQuery(StaticArrayBuffer.of(new byte[0]), 
-                                            StaticArrayBuffer.of(new byte[]{(byte)0xFF}));
+            SliceQuery slice = new SliceQuery(new StaticArrayBuffer(new byte[0]), 
+                                            new StaticArrayBuffer(new byte[]{(byte)0xFF}));
             KeySliceQuery keySlice = new KeySliceQuery(key, slice);
             EntryList entries = store.getSlice(keySlice, tx);
 
@@ -146,8 +148,8 @@ public class KVTIntegrationTest {
                       methodName + ": Second value should be 'Alice'");
 
             // Test column range query
-            SliceQuery nameOnly = new SliceQuery(StaticArrayBuffer.of("name".getBytes()),
-                                               StaticArrayBuffer.of("namf".getBytes())); // Just after "name"
+            SliceQuery nameOnly = new SliceQuery(new StaticArrayBuffer("name".getBytes()),
+                                               new StaticArrayBuffer("namf".getBytes())); // Just after "name"
             KeySliceQuery nameKeySlice = new KeySliceQuery(key, nameOnly);
             EntryList nameEntries = store.getSlice(nameKeySlice, tx);
 
@@ -181,8 +183,8 @@ public class KVTIntegrationTest {
 
     @Test
     public void testMultipleStores() throws BackendException {
-        KeyColumnValueStore store1 = compositeKeyManager.openDatabase("store1");
-        KeyColumnValueStore store2 = compositeKeyManager.openDatabase("store2");
+        KeyColumnValueStore store1 = compositeKeyManager.openDatabase("store1", null);
+        KeyColumnValueStore store2 = compositeKeyManager.openDatabase("store2", null);
         
         assertNotNull(store1);
         assertNotNull(store2);
@@ -199,8 +201,8 @@ public class KVTIntegrationTest {
         assertTrue(compositeKeyManager.getFeatures().hasOrderedScan());
         assertTrue(compositeKeyManager.getFeatures().hasUnorderedScan());
         assertTrue(compositeKeyManager.getFeatures().isKeyOrdered());
-        assertFalse(compositeKeyManager.getFeatures().isPersistent());
-        assertTrue(compositeKeyManager.getFeatures().isTransactional());
+        assertFalse(compositeKeyManager.getFeatures().hasPersistence());
+        assertTrue(compositeKeyManager.getFeatures().hasTxIsolation());
         
         System.out.println("Store features test passed!");
     }

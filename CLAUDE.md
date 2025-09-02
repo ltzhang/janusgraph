@@ -77,3 +77,6 @@ JanusGraph uses a pluggable storage architecture:
 
 ### Multi-Backend Support
 Each storage backend module provides its own test configurations and may require external services (Docker containers) for integration testing.
+
+
+## The current effor is to integrate kvt under janusgraph-inmemory/kvt into the janusgraph framework. In this effort, you only need to care about janusgraph-inmemory/kvt/kvt_inc.h file, which is the interface for the C++ transactional key-value store. To link the store, you just link janusgraph-inmemory/kvt/kvt_memory.o All other files in the directory are irrelevant, more over, treat kvt/ directory as read only. DO not add/delete/modify any files in that directory. 
