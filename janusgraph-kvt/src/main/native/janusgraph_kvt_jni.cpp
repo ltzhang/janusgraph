@@ -4,6 +4,7 @@
 #include <cstring>
 #include <map>
 #include <mutex>
+#include <iostream>
 #include "../../../kvt/kvt_inc.h"
 
 // Mutex for thread-safety
@@ -212,9 +213,22 @@ JNIEXPORT jobjectArray JNICALL Java_org_janusgraph_diskstorage_kvt_KVTKeyColumnV
     KVTError error = kvt_scan(static_cast<uint64_t>(txId), static_cast<uint64_t>(tableId), start_key, end_key,
                              static_cast<size_t>(limit), results, error_msg);
     
+    // DEBUG: Log scan results
+    std::cout << "JNI nativeScan - immediately after kvt_scan: error=" << static_cast<int>(error) 
+              << ", results.size()=" << results.size();
+    if (!results.empty()) {
+        std::cout << ", first result key_len=" << results[0].first.length() 
+                  << ", val_len=" << results[0].second.length();
+    }
+    std::cout << std::endl;
+    
     if (error != KVTError::SUCCESS || results.empty()) {
+        std::cout << "JNI nativeScan returning null (error=" << static_cast<int>(error) 
+                  << ", results.empty()=" << results.empty() << ")" << std::endl;
         return nullptr;
     }
+    
+    std::cout << "JNI nativeScan creating result array with " << results.size() << " pairs" << std::endl;
     
     // Create array of byte arrays (alternating keys and values)
     jclass byteArrayClass = env->FindClass("[B");

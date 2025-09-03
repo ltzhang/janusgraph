@@ -101,6 +101,9 @@ public class KVTStoreManager extends AbstractStoreManager implements KeyColumnVa
         // KVT can be distributed (per instructions to assume all capabilities)
         builder.distributed(true);
         
+        // Set key consistency with basic configuration
+        builder.keyConsistent(GraphDatabaseConfiguration.buildGraphConfiguration());
+        
         // KVT uses pessimistic locking (2PL)
         builder.optimisticLocking(false);
         
@@ -243,6 +246,10 @@ public class KVTStoreManager extends AbstractStoreManager implements KeyColumnVa
     public List<KeyRange> getLocalKeyPartition() throws BackendException {
         // Return empty list for non-distributed storage
         return new ArrayList<>();
+    }
+    
+    public Configuration getConfiguration() {
+        return configuration;
     }
     
     // Package-private methods for transaction management

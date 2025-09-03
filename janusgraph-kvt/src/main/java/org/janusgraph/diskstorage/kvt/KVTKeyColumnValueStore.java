@@ -56,13 +56,35 @@ public class KVTKeyColumnValueStore implements KeyColumnValueStore {
         // Build composite key prefix for this row
         byte[] keyBytes = getByteArray(keyBuffer);
         
+        // DEBUG: Log the key being queried
+        log.debug("JAVA getSlice - key bytes (len={}): {}", keyBytes.length, bytesToHex(keyBytes));
+        
         // Build start and end keys for scan
         byte[] startKey = buildCompositeKey(keyBytes, getByteArray(sliceQuery.getSliceStart()));
         byte[] endKey = buildCompositeKey(keyBytes, getByteArray(sliceQuery.getSliceEnd()));
         
+        // DEBUG: Log scan parameters
+        log.debug("JAVA scan - startKey (len={}): {}", startKey.length, bytesToHex(startKey));
+        log.debug("JAVA scan - endKey (len={}): {}", endKey.length, bytesToHex(endKey));
+        log.debug("JAVA scan - limit: {}", sliceQuery.getLimit());
+        
         // Perform scan
         byte[][] results = nativeScan(manager.getNativeManagerPtr(), tx.getTransactionId(), 
                                       tableId, startKey, endKey, sliceQuery.getLimit());
+        
+        // DEBUG: Log scan results
+        if (results == null) {
+            log.debug("JAVA scan returned null");
+        } else {
+            log.debug("JAVA scan returned {} items", results.length);
+            for (int i = 0; i < Math.min(results.length, 10); i++) {
+                if (results[i] != null) {
+                    log.debug("JAVA scan result[{}] (len={}): {}", i, results[i].length, bytesToHex(results[i]));
+                } else {
+                    log.debug("JAVA scan result[{}] is null", i);
+                }
+            }
+        }
         
         if (results == null || results.length == 0) {
             return StaticArrayEntryList.EMPTY_LIST;
@@ -75,17 +97,26 @@ public class KVTKeyColumnValueStore implements KeyColumnValueStore {
                 byte[] compositeKey = results[i];
                 byte[] value = results[i + 1];
                 
+                // DEBUG: Log before extracting column
+                log.debug("JAVA parsing entry {}: key={}, value={}", i/2, 
+                    compositeKey != null ? bytesToHex(compositeKey) : "null",
+                    value != null ? bytesToHex(value) : "null");
+                
                 // Extract column from composite key
                 byte[] column = extractColumn(compositeKey, keyBytes.length);
                 if (column != null) {
+                    log.debug("JAVA extracted column (len={}): {}", column.length, bytesToHex(column));
                     entries.add(StaticArrayEntry.of(
                         new StaticArrayBuffer(column),
                         new StaticArrayBuffer(value)
                     ));
+                } else {
+                    log.debug("JAVA failed to extract column from composite key");
                 }
             }
         }
         
+        log.debug("JAVA returning {} entries", entries.size());
         return StaticArrayEntryList.of(entries);
     }
     
@@ -122,8 +153,15 @@ public class KVTKeyColumnValueStore implements KeyColumnValueStore {
         // Process additions
         if (additions != null && !additions.isEmpty()) {
             for (Entry entry : additions) {
-                byte[] compositeKey = buildCompositeKey(keyBytes, getByteArray(entry.getColumn()));
+                byte[] columnBytes = getByteArray(entry.getColumn());
+                byte[] compositeKey = buildCompositeKey(keyBytes, columnBytes);
                 byte[] value = getByteArray(entry.getValue());
+                
+                // DEBUG: Log what we're storing
+                log.debug("JAVA mutate SET - key (len={}): {}", keyBytes.length, bytesToHex(keyBytes));
+                log.debug("JAVA mutate SET - column (len={}): {}", columnBytes.length, bytesToHex(columnBytes));
+                log.debug("JAVA mutate SET - compositeKey (len={}): {}", compositeKey.length, bytesToHex(compositeKey));
+                log.debug("JAVA mutate SET - value (len={}): {}", value.length, bytesToHex(value));
                 
                 if (!nativeSet(manager.getNativeManagerPtr(), tx.getTransactionId(), tableId, compositeKey, value)) {
                     throw new PermanentBackendException("Failed to set key-column: " + key + "-" + entry.getColumn());
@@ -286,6 +324,21 @@ public class KVTKeyColumnValueStore implements KeyColumnValueStore {
     }
     
     // Helper methods
+    
+    private static String bytesToHex(byte[] bytes) {
+        if (bytes == null) return "null";
+        if (bytes.length == 0) return "[]";
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < Math.min(bytes.length, 32); i++) {
+            if (i > 0) sb.append(" ");
+            sb.append(String.format("%02X", bytes[i] & 0xFF));
+        }
+        if (bytes.length > 32) {
+            sb.append(" ... (").append(bytes.length).append(" bytes total)");
+        }
+        sb.append("]");
+        return sb.toString();
+    }
     
     private static byte[] getByteArray(StaticBuffer buffer) {
         byte[] bytes = new byte[buffer.length()];
