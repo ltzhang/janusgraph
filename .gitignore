@@ -51,3 +51,4 @@ janusgraph-*/pom.xml.versionsBackup
 janusgraph-benchmark/benchmark.json
 janusgraph-kvt/kvt/kvt_mem.o
 janusgraph-kvt/src/main/native/libjanusgraph-kvt-jni.so
+conf/janusgraph-full-1.2.0-SNAPSHOT/

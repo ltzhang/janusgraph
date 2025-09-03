@@ -104,14 +104,6 @@ That's the only change required to the original JanusGraph codebase. All other c
 ### Complete Build Instructions
 
 ```bash
-# Clone and prepare JanusGraph (if not already done)
-git clone https://github.com/JanusGraph/janusgraph.git
-cd janusgraph
-
-# Step 1: Add KVT module to parent POM
-# Edit pom.xml and add <module>janusgraph-kvt</module> after janusgraph-inmemory
-# (This step is already done if you have the modified codebase)
-
 # Step 2: Build JanusGraph core dependencies first
 mvn clean install -pl janusgraph-core -am -DskipTests
 
@@ -125,6 +117,12 @@ cd ..
 
 # Build the JNI native library
 ./build-native.sh
+
+```bash
+mvn clean install -Pjanusgraph-release -Dgpg.skip=true -DskipTests=true -Dmaven.compiler.debug=true -Ddocker.build.skip=true -DskipITs=true -Drat.skip=tru
+Or:
+mvn clean install -pl janusgraph-dist -Dgpg.skip=true -DskipTests=true -Dmaven.compiler.debug=true -Ddocker.build.skip=true -DskipITs=true -Drat.skip=tru
+```
 
 # Step 4: Build the complete KVT module
 cd ..
@@ -150,6 +148,7 @@ cd ..
 mvn compile -pl janusgraph-kvt -DskipTests
 # Note: License and checkstyle checks are skipped by default for the KVT module
 ```
+
 
 ### Manual Build Steps
 
