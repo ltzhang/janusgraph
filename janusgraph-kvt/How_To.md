@@ -55,7 +55,7 @@ mkdir -p $JANUSGRAPH_HOME/conf/kvt
 cat > $JANUSGRAPH_HOME/conf/kvt/janusgraph-kvt-server.properties << 'EOF'
 # KVT Backend Configuration
 storage.backend=org.janusgraph.diskstorage.kvt.KVTStoreManager
-storage.kvt.storage-method=composite  # or 'serialized'
+# Note: KVT currently uses default configurations
 
 # Server settings
 gremlin.graph=org.janusgraph.core.JanusGraphFactory
@@ -75,7 +75,7 @@ Start the Gremlin Server:
 
 ```bash
 # Start server with KVT configuration
-$JANUSGRAPH_HOME/bin/gremlin-server.sh $JANUSGRAPH_HOME/conf/kvt/janusgraph-kvt-server.properties
+$JANUSGRAPH_HOME/bin/janusgraph-server.sh $JANUSGRAPH_HOME/conf/kvt/janusgraph-kvt-server.properties
 ```
 
 ### Step 3: Connect and Test
@@ -102,6 +102,8 @@ Save this as `examples/create_social_graph.groovy`:
 
 ```groovy
 // Create a simple social network graph
+import org.janusgraph.core.JanusGraphFactory
+
 graph = JanusGraphFactory.open('conf/kvt/janusgraph-kvt-server.properties')
 g = graph.traversal()
 
@@ -348,7 +350,7 @@ Create benchmark configurations:
 # KVT Configuration
 cat > conf/benchmark-kvt.properties << 'EOF'
 storage.backend=org.janusgraph.diskstorage.kvt.KVTStoreManager
-storage.kvt.storage-method=composite
+cache.db-cache=true
 EOF
 
 # InMemory Configuration (for comparison)
@@ -397,14 +399,8 @@ class JanusGraphBenchmark:
     def setup_config(self):
         """Create configuration file for the backend"""
         configs = {
-            'kvt-composite': '''
+            'kvt': '''
 storage.backend=org.janusgraph.diskstorage.kvt.KVTStoreManager
-storage.kvt.storage-method=composite
-cache.db-cache=true
-''',
-            'kvt-serialized': '''
-storage.backend=org.janusgraph.diskstorage.kvt.KVTStoreManager
-storage.kvt.storage-method=serialized
 cache.db-cache=true
 ''',
             'inmemory': '''
@@ -517,6 +513,7 @@ for (i in 1..50) {
 ''',
             'filter': '''
 // Benchmark: Filtered traversal
+import org.apache.tinkerpop.gremlin.process.traversal.P
 for (i in 1..100) {
     g.V().has('id', P.gte(0)).has('id', P.lt(50)).toList()
 }
@@ -568,8 +565,7 @@ def compare_backends():
     """Compare KVT and InMemory backends"""
     
     backends = [
-        ('kvt-composite', 'conf/bench-kvt-composite.properties'),
-        ('kvt-serialized', 'conf/bench-kvt-serialized.properties'),
+        ('kvt', 'conf/bench-kvt.properties'),
         ('inmemory', 'conf/bench-inmemory.properties')
     ]
     
@@ -666,7 +662,6 @@ run_test() {
     # Create config
     cat > $config_file << CONFIG
 storage.backend=$backend
-$([ "$backend" = "org.janusgraph.diskstorage.kvt.KVTStoreManager" ] && echo "storage.kvt.storage-method=composite")
 cache.db-cache=true
 CONFIG
     
@@ -675,7 +670,7 @@ CONFIG
 import org.janusgraph.core.JanusGraphFactory
 import java.lang.System
 
-config = args[0]
+config = "$config_file"
 graph = JanusGraphFactory.open(config)
 g = graph.traversal()
 
@@ -745,30 +740,23 @@ You should see output comparing:
 ### KVT-Specific Settings
 
 ```properties
-# Storage method selection
-storage.kvt.storage-method=composite  # or 'serialized'
+# KVT Backend Configuration
+storage.backend=org.janusgraph.diskstorage.kvt.KVTStoreManager
 
-# Performance tuning
-storage.kvt.batch-size=100            # Batch operation size
-storage.kvt.cache-size=1000000        # Number of cached entries
-storage.kvt.compression=true          # Enable compression
-
-# Transaction settings
-storage.kvt.transaction.timeout=60000  # Transaction timeout in ms
-storage.kvt.transaction.retries=3      # Number of retry attempts
+# Standard JanusGraph configurations apply:
+cache.db-cache=true                   # Enable database-level cache
+cache.db-cache-size=0.5              # Cache size (fraction of heap)
 ```
 
-### Choosing Storage Method
+### KVT Backend Features
 
-**Composite Key Method** (`storage.kvt.storage-method=composite`):
-- Best for: Sparse property graphs, column-specific queries
-- Advantages: Efficient column access, natural range scans
-- Use when: You frequently query specific properties
+**Current Implementation**:
+- Full ACID transactions with pessimistic locking (2PL)
+- Efficient key-value operations
+- Support for all JanusGraph features
+- Native C++ implementation via JNI for performance
 
-**Serialized Method** (`storage.kvt.storage-method=serialized`):
-- Best for: Dense property graphs, full vertex reads
-- Advantages: Fewer KV pairs, atomic multi-column updates
-- Use when: You typically read/write all properties together
+The KVT backend automatically handles storage optimization internally and doesn't require storage method selection.
 
 ## Troubleshooting
 
@@ -794,14 +782,14 @@ storage.kvt.transaction.retries=3      # Number of retry attempts
    ```bash
    ps aux | grep gremlin-server
    # If not running, start it:
-   $JANUSGRAPH_HOME/bin/gremlin-server.sh start
+   $JANUSGRAPH_HOME/bin/janusgraph-server.sh start
    ```
 
 3. **Out of Memory**
    ```
    Error: java.lang.OutOfMemoryError: Java heap space
    ```
-   Solution: Increase heap size in `bin/gremlin-server.sh`:
+   Solution: Increase heap size in `bin/janusgraph-server.sh`:
    ```bash
    export JAVA_OPTIONS="-Xms2g -Xmx4g"
    ```
@@ -810,9 +798,9 @@ storage.kvt.transaction.retries=3      # Number of retry attempts
    ```
    Error: Transaction timed out
    ```
-   Solution: Increase timeout in configuration:
+   Solution: Increase JanusGraph's transaction timeout:
    ```properties
-   storage.kvt.transaction.timeout=120000  # 2 minutes
+   storage.lock.wait-time=120000  # 2 minutes
    ```
 
 ## Advanced Topics
@@ -832,7 +820,7 @@ val spark = SparkSession.builder()
 // Configure JanusGraph with KVT
 val conf = new BaseConfiguration()
 conf.setProperty("storage.backend", "org.janusgraph.diskstorage.kvt.KVTStoreManager")
-conf.setProperty("storage.kvt.storage-method", "composite")
+conf.setProperty("cache.db-cache", "true")
 
 // Run graph computations
 val graph = JanusGraphFactory.open(conf)
@@ -849,7 +837,6 @@ For production use:
 1. **Use Environment Variables**:
    ```bash
    export JANUSGRAPH_STORAGE_BACKEND=kvt
-   export JANUSGRAPH_KVT_METHOD=composite
    export JANUSGRAPH_CACHE_SIZE=0.5
    ```
 
