@@ -14,7 +14,7 @@ import org.janusgraph.diskstorage.util.StaticArrayBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.ByteBuffer;
+import org.janusgraph.diskstorage.logging.StorageLoggingUtil;
 import java.util.*;
 
 public class KVTKeyColumnValueStore implements KeyColumnValueStore {
@@ -45,6 +45,8 @@ public class KVTKeyColumnValueStore implements KeyColumnValueStore {
     
     @Override
     public EntryList getSlice(KeySliceQuery query, StoreTransaction txh) throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         if (!isOpen) {
             throw new IllegalStateException("Store is closed");
         }
@@ -98,7 +100,16 @@ public class KVTKeyColumnValueStore implements KeyColumnValueStore {
         }
         
         if (results == null || results.length == 0) {
-            return StaticArrayEntryList.EMPTY_LIST;
+            EntryList result = StaticArrayEntryList.EMPTY_LIST;
+            
+            Map<String, Object> params = new HashMap<>();
+            params.put("Key", StorageLoggingUtil.serializeBuffer(keyBuffer));
+            params.put("Columns", StorageLoggingUtil.serializeBuffer(sliceQuery.getSliceStart()) + "-" + StorageLoggingUtil.serializeBuffer(sliceQuery.getSliceEnd()));
+            params.put("Limit", sliceQuery.getLimit());
+            params.put("ResultCount", result.size());
+            StorageLoggingUtil.logFunctionCall("STORAGE-STORE:" + name, "getSlice(KeySliceQuery)", params, startTime);
+            
+            return result;
         }
         
         // Parse results into entries
@@ -128,22 +139,41 @@ public class KVTKeyColumnValueStore implements KeyColumnValueStore {
         }
         
         log.debug("JAVA returning {} entries", entries.size());
-        return StaticArrayEntryList.of(entries);
+        EntryList result = StaticArrayEntryList.of(entries);
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("Key", StorageLoggingUtil.serializeBuffer(keyBuffer));
+        params.put("Columns", StorageLoggingUtil.serializeBuffer(sliceQuery.getSliceStart()) + "-" + StorageLoggingUtil.serializeBuffer(sliceQuery.getSliceEnd()));
+        params.put("Limit", sliceQuery.getLimit());
+        params.put("ResultCount", result.size());
+        StorageLoggingUtil.logFunctionCall("STORAGE-STORE:" + name, "getSlice(KeySliceQuery)", params, startTime);
+        
+        return result;
     }
     
     @Override
     public Map<StaticBuffer, EntryList> getSlice(List<StaticBuffer> keys, SliceQuery query, StoreTransaction txh) throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         Map<StaticBuffer, EntryList> result = new HashMap<>(keys.size());
         
         for (StaticBuffer key : keys) {
             result.put(key, getSlice(new KeySliceQuery(key, query), txh));
         }
         
+        Map<String, Object> params = new HashMap<>();
+        params.put("KeyCount", keys.size());
+        params.put("Columns", StorageLoggingUtil.serializeBuffer(query.getSliceStart()) + "-" + StorageLoggingUtil.serializeBuffer(query.getSliceEnd()));
+        params.put("Limit", query.getLimit());
+        StorageLoggingUtil.logFunctionCall("STORAGE-STORE:" + name, "getSlice(List<StaticBuffer>)", params, startTime);
+        
         return result;
     }
     
     @Override
     public void mutate(StaticBuffer key, List<Entry> additions, List<StaticBuffer> deletions, StoreTransaction txh) throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         if (!isOpen) {
             throw new IllegalStateException("Store is closed");
         }
@@ -179,16 +209,32 @@ public class KVTKeyColumnValueStore implements KeyColumnValueStore {
                 }
             }
         }
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("Key", StorageLoggingUtil.serializeBuffer(key));
+        params.put("Additions", additions != null ? additions.size() : 0);
+        params.put("Deletions", deletions != null ? deletions.size() : 0);
+        StorageLoggingUtil.logFunctionCall("STORAGE-STORE:" + name, "mutate()", params, startTime);
     }
     
     @Override
     public void acquireLock(StaticBuffer key, StaticBuffer column, StaticBuffer expectedValue, StoreTransaction txh) throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         // KVT uses pessimistic locking (2PL), locks are acquired automatically on access
         // This method is a no-op as locking is handled internally by KVT
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("Key", StorageLoggingUtil.serializeBuffer(key));
+        params.put("Column", StorageLoggingUtil.serializeBuffer(column));
+        params.put("ExpectedValue", expectedValue != null ? StorageLoggingUtil.serializeBuffer(expectedValue) : "null");
+        StorageLoggingUtil.logFunctionCall("STORAGE-STORE:" + name, "acquireLock()", params, startTime);
     }
     
     @Override
     public KeyIterator getKeys(KeyRangeQuery query, StoreTransaction txh) throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         if (!isOpen) {
             throw new IllegalStateException("Store is closed");
         }
@@ -204,7 +250,15 @@ public class KVTKeyColumnValueStore implements KeyColumnValueStore {
                                       tableId, startKey, endKey, query.getLimit());
         
         if (results == null || results.length == 0) {
-            return new EmptyKeyIterator();
+            KeyIterator result = new EmptyKeyIterator();
+            
+            Map<String, Object> params = new HashMap<>();
+            params.put("KeyStart", StorageLoggingUtil.serializeBuffer(query.getKeyStart()));
+            params.put("KeyEnd", StorageLoggingUtil.serializeBuffer(query.getKeyEnd()));
+            params.put("Limit", query.getLimit());
+            StorageLoggingUtil.logFunctionCall("STORAGE-STORE:" + name, "getKeys(KeyRangeQuery)", params, startTime);
+            
+            return result;
         }
         
         // Group results by key
@@ -236,7 +290,7 @@ public class KVTKeyColumnValueStore implements KeyColumnValueStore {
         // Convert to iterator
         Iterator<Map.Entry<StaticBuffer, List<Entry>>> iter = keyMap.entrySet().iterator();
         
-        return new KeyIterator() {
+        KeyIterator result = new KeyIterator() {
             @Override
             public RecordIterator<Entry> getEntries() {
                 if (!iter.hasNext()) {
@@ -291,10 +345,20 @@ public class KVTKeyColumnValueStore implements KeyColumnValueStore {
             public void close() {
             }
         };
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("KeyStart", StorageLoggingUtil.serializeBuffer(query.getKeyStart()));
+        params.put("KeyEnd", StorageLoggingUtil.serializeBuffer(query.getKeyEnd()));
+        params.put("Limit", query.getLimit());
+        StorageLoggingUtil.logFunctionCall("STORAGE-STORE:" + name, "getKeys(KeyRangeQuery)", params, startTime);
+        
+        return result;
     }
     
     @Override
     public KeyIterator getKeys(SliceQuery query, StoreTransaction txh) throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         // For unordered scan, we scan all keys and filter by column range
         // When doing a full scan for vertex iteration, we need to remove the limit from existence queries
         // The limit=1 is meant for checking vertex existence, not for iterating all vertices
@@ -314,13 +378,22 @@ public class KVTKeyColumnValueStore implements KeyColumnValueStore {
         // Use an empty byte array for start and a large byte array for end to scan all keys
         byte[] endBytes = new byte[8];
         Arrays.fill(endBytes, (byte)0xFF);
-        return getKeys(new KeyRangeQuery(new StaticArrayBuffer(new byte[0]), new StaticArrayBuffer(endBytes), scanQuery), txh);
+        KeyIterator result = getKeys(new KeyRangeQuery(new StaticArrayBuffer(new byte[0]), new StaticArrayBuffer(endBytes), scanQuery), txh);
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("Columns", StorageLoggingUtil.serializeBuffer(query.getSliceStart()) + "-" + StorageLoggingUtil.serializeBuffer(query.getSliceEnd()));
+        params.put("Limit", query.getLimit());
+        StorageLoggingUtil.logFunctionCall("STORAGE-STORE:" + name, "getKeys(SliceQuery)", params, startTime);
+        
+        return result;
     }
     
     @Override
     public KeySlicesIterator getKeys(MultiSlicesQuery query, StoreTransaction txh) throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         // Simplified implementation - would need optimization for production
-        return new KeySlicesIterator() {
+        KeySlicesIterator result = new KeySlicesIterator() {
             @Override
             public boolean hasNext() {
                 return false;
@@ -340,16 +413,31 @@ public class KVTKeyColumnValueStore implements KeyColumnValueStore {
                 return new HashMap<>();
             }
         };
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("SliceCount", query.getQueries().size());
+        StorageLoggingUtil.logFunctionCall("STORAGE-STORE:" + name, "getKeys(MultiSlicesQuery)", params, startTime);
+        
+        return result;
     }
     
     @Override
     public String getName() {
-        return name;
+        long startTime = System.currentTimeMillis();
+        String result = name;
+        
+        StorageLoggingUtil.logFunctionCall("STORAGE-STORE:" + name, "getName()", null, startTime);
+        
+        return result;
     }
     
     @Override
     public void close() throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         isOpen = false;
+        
+        StorageLoggingUtil.logFunctionCall("STORAGE-STORE:" + name, "close()", null, startTime);
     }
     
     // Helper methods

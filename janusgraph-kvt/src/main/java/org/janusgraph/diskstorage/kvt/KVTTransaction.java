@@ -4,6 +4,7 @@ import org.janusgraph.diskstorage.BackendException;
 import org.janusgraph.diskstorage.PermanentBackendException;
 import org.janusgraph.diskstorage.BaseTransactionConfig;
 import org.janusgraph.diskstorage.common.AbstractStoreTransaction;
+import org.janusgraph.diskstorage.logging.StorageLoggingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +27,8 @@ public class KVTTransaction extends AbstractStoreTransaction {
     
     @Override
     public void commit() throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         if (!isOpen) {
             throw new IllegalStateException("Transaction is already closed");
         }
@@ -39,10 +42,14 @@ public class KVTTransaction extends AbstractStoreTransaction {
         } finally {
             isOpen = false;
         }
+        
+        StorageLoggingUtil.logFunctionCall("STORAGE-TX:" + hashCode(), "commit()", null, startTime);
     }
     
     @Override
     public void rollback() throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         if (!isOpen) {
             // Already closed, nothing to rollback
             return;
@@ -58,6 +65,8 @@ public class KVTTransaction extends AbstractStoreTransaction {
         } finally {
             isOpen = false;
         }
+        
+        StorageLoggingUtil.logFunctionCall("STORAGE-TX:" + hashCode(), "rollback()", null, startTime);
     }
     
     public long getTransactionId() {

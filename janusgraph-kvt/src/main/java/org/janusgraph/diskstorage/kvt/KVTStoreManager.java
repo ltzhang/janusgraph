@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import org.janusgraph.diskstorage.logging.StorageLoggingUtil;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -121,7 +122,15 @@ public class KVTStoreManager extends AbstractStoreManager implements KeyColumnVa
     
     @Override
     public KeyColumnValueStore openDatabase(String name) throws BackendException {
-        return openDatabase(name, StoreMetaData.EMPTY);
+        long startTime = System.currentTimeMillis();
+        
+        KeyColumnValueStore result = openDatabase(name, StoreMetaData.EMPTY);
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("Name", name);
+        StorageLoggingUtil.logFunctionCall("STORAGE-MANAGER", "openDatabase()", params, startTime);
+        
+        return result;
     }
     
     @Override
@@ -148,6 +157,8 @@ public class KVTStoreManager extends AbstractStoreManager implements KeyColumnVa
     
     @Override
     public void mutateMany(Map<String, Map<StaticBuffer, KCVMutation>> mutations, StoreTransaction txh) throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         if (!isOpen) {
             throw new IllegalStateException("Store manager is closed");
         }
@@ -165,10 +176,17 @@ public class KVTStoreManager extends AbstractStoreManager implements KeyColumnVa
                 store.mutate(key, mutation.getAdditions(), mutation.getDeletions(), tx);
             }
         }
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("Stores", mutations.size());
+        params.put("TotalMutations", mutations.values().stream().mapToInt(Map::size).sum());
+        StorageLoggingUtil.logFunctionCall("STORAGE-MANAGER", "mutateMany()", params, startTime);
     }
     
     @Override
     public StoreTransaction beginTransaction(BaseTransactionConfig config) throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         if (!isOpen) {
             throw new IllegalStateException("Store manager is closed");
         }
@@ -178,11 +196,20 @@ public class KVTStoreManager extends AbstractStoreManager implements KeyColumnVa
             throw new PermanentBackendException("Failed to start KVT transaction");
         }
         
-        return new KVTTransaction(this, txId, config);
+        KVTTransaction tx = new KVTTransaction(this, txId, config);
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("Config", config.toString());
+        params.put("TxId", txId);
+        StorageLoggingUtil.logFunctionCall("STORAGE-MANAGER", "beginTransaction()", params, startTime);
+        
+        return tx;
     }
     
     @Override
     public void close() throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         if (!isOpen) {
             return;
         }
@@ -202,10 +229,14 @@ public class KVTStoreManager extends AbstractStoreManager implements KeyColumnVa
         }
         
         log.info("KVT Store Manager closed");
+        
+        StorageLoggingUtil.logFunctionCall("STORAGE-MANAGER", "close()", null, startTime);
     }
     
     @Override
     public void clearStorage() throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         if (!isOpen) {
             throw new IllegalStateException("Store manager is closed");
         }
@@ -225,25 +256,50 @@ public class KVTStoreManager extends AbstractStoreManager implements KeyColumnVa
         }
         
         log.info("Cleared KVT storage");
+        
+        StorageLoggingUtil.logFunctionCall("STORAGE-MANAGER", "clearStorage()", null, startTime);
     }
     
     @Override
     public boolean exists() throws BackendException {
-        return isOpen && nativeManagerPtr != 0;
+        long startTime = System.currentTimeMillis();
+        boolean result = isOpen && nativeManagerPtr != 0;
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("Result", result);
+        StorageLoggingUtil.logFunctionCall("STORAGE-MANAGER", "exists()", params, startTime);
+        
+        return result;
     }
     
     @Override
     public StoreFeatures getFeatures() {
-        return features;
+        long startTime = System.currentTimeMillis();
+        StoreFeatures result = features;
+        
+        StorageLoggingUtil.logFunctionCall("STORAGE-MANAGER", "getFeatures()", null, startTime);
+        
+        return result;
     }
     
     @Override
     public String getName() {
-        return KVT_BACKEND_NAME;
+        long startTime = System.currentTimeMillis();
+        String result = KVT_BACKEND_NAME;
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("Result", result);
+        StorageLoggingUtil.logFunctionCall("STORAGE-MANAGER", "getName()", params, startTime);
+        
+        return result;
     }
     
     @Override
     public List<KeyRange> getLocalKeyPartition() throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
+        StorageLoggingUtil.logFunctionCall("STORAGE-MANAGER", "getLocalKeyPartition()", null, startTime);
+        
         // Return empty list for non-distributed storage
         return new ArrayList<>();
     }
