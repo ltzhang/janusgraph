@@ -33,8 +33,12 @@ Ensure you have:
 ### Step 1: Set Up Your Environment
 
 ```bash
+#first create a work dir
+mkdir work_dir
+cd work_dir
+unzip janusgraph-full-1.2.0-SNAPSHOT.zip
 # Navigate to JanusGraph root directory
-cd /path/to/janusgraph
+cd /path/to/janusgraph/work_dir/janusgraph-full-1.2.0-SNAPSHOT
 
 # Set JANUSGRAPH_HOME
 export JANUSGRAPH_HOME=$(pwd)
