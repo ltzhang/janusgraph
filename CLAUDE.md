@@ -92,3 +92,5 @@ Each storage backend module provides its own test configurations and may require
 - You should use janusgraph-kvt/ as the root directory we operate on and focus on this directory in most cases. When you need to understand how integration works, look at other directories such as janusgraph-berkeleyje, janusgraph-inmemory or janusgraph-hbase and janusgraph-bigtable. Do understand that kvt is a C++ codebase, so we need JNI integration, but we want to treat it as a distributed, scalable, persistent, transactional and so on, like hbase or bigtable, and implement all the features of Janusgraph on top of it. 
 
 - janusgraph-kvt/KVT_README.md contains instructions and build methods. Carefully read it and refer to it. Update it if you see fit. 
+
+Now that the work is done. We will focus on testing and tuning. After startup wait for instructions. 

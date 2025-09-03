@@ -193,6 +193,73 @@ ls janusgraph-kvt/target/classes/org/janusgraph/diskstorage/kvt/
 mvn dependency:tree -pl janusgraph-kvt | grep kvt
 ```
 
+## Maven Build Commands Explained
+
+### Understanding Maven Commands
+
+Maven is the build tool used by JanusGraph. Here's what the common commands mean:
+
+#### Basic Command Structure
+```bash
+mvn [phase] [options]
+```
+
+#### Common Phases
+- **`clean`** - Deletes the `target/` directory (like `make clean`). Forces complete rebuild.
+- **`compile`** - Compiles source code only
+- **`test`** - Compiles and runs tests
+- **`package`** - Compiles, tests, and creates JAR files
+- **`install`** - Does everything package does, plus installs JARs to local Maven repository (`~/.m2/repository/`)
+
+#### Common Options
+- **`-DskipTests`** - Skips running tests (still compiles test code)
+- **`-pl <module>`** - Build specific module (e.g., `-pl janusgraph-kvt`)
+- **`-am`** - Also make dependencies (builds required modules first)
+
+### Incremental vs Clean Builds
+
+**Maven supports incremental builds!** You don't need to clean every time:
+
+```bash
+# Full rebuild (like: make clean && make)
+mvn clean install -DskipTests
+
+# Incremental build (like: make) - only recompiles changed files
+mvn install -DskipTests
+
+# Even faster - just compile, don't package or install
+mvn compile -DskipTests
+```
+
+**To build the distribution archive:**
+mvn clean install -Pjanusgraph-release -Dgpg.skip=true -DskipTests=true
+or 
+mvn clean install -Pjanusgraph-debug -Dgpg.skip=true -DskipTests=true
+
+### Development Workflow for KVT
+
+For efficient development, use incremental builds:
+
+```bash
+# First time or after major changes (full rebuild)
+mvn clean install -DskipTests -pl janusgraph-kvt -am
+
+# Subsequent builds - Java changes only (much faster!)
+mvn compile -pl janusgraph-kvt -DskipTests
+
+# If you changed native C++ code
+cd janusgraph-kvt
+./build-native.sh
+cd ..
+mvn compile -pl janusgraph-kvt -DskipTests
+
+# Just compile without packaging (fastest for testing compilation)
+mvn compile -pl janusgraph-kvt
+
+# Run tests after changes
+mvn test -pl janusgraph-kvt
+```
+
 ## Usage
 
 ### Configuration
