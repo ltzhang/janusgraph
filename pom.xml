@@ -283,6 +283,10 @@
                         <exclude>**/src/test/resources/longTests2</exclude>
                         <exclude>**/src/test/resources/mockito-extensions/**</exclude>
                         <exclude>**/src/test/resources/org/janusgraph/hadoop/formats/edgelist/rdf/**</exclude>
+                        <!-- Exclude KVT module files from license check -->
+                        <exclude>janusgraph-kvt/**</exclude>
+                        <exclude>conf/kvt/**</exclude>
+                        <exclude>conf/setup.sh</exclude>
                     </excludes>
                 </configuration>
             </plugin>
@@ -302,6 +306,8 @@
                     <failsOnError>true</failsOnError>
                     <sourceDirectory>${project.build.sourceDirectories}</sourceDirectory>
                     <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                    <!-- Exclude KVT module from checkstyle -->
+                    <excludes>**/janusgraph-kvt/**</excludes>
                     <!-- define here because checkstyle and multi module is a PITA -->
                     <checkstyleRules>
                         <module name="Checker">

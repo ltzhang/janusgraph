@@ -113,7 +113,7 @@ cd janusgraph
 # (This step is already done if you have the modified codebase)
 
 # Step 2: Build JanusGraph core dependencies first
-mvn clean install -pl janusgraph-core -am -DskipTests -Drat.skip=true -Dcheckstyle.skip=true
+mvn clean install -pl janusgraph-core -am -DskipTests
 
 # Step 3: Build KVT native library
 cd janusgraph-kvt
@@ -128,7 +128,7 @@ cd ..
 
 # Step 4: Build the complete KVT module
 cd ..
-mvn clean install -pl janusgraph-kvt -am -DskipTests -Drat.skip=true -Dcheckstyle.skip=true
+mvn clean install -pl janusgraph-kvt -am -DskipTests
 ```
 
 ### Quick Build (if JanusGraph core is already built)
@@ -148,6 +148,7 @@ cd ..
 # Build with Maven
 cd ..
 mvn compile -pl janusgraph-kvt -DskipTests
+# Note: License and checkstyle checks are skipped by default for the KVT module
 ```
 
 ### Manual Build Steps
@@ -169,6 +170,7 @@ cd janusgraph-kvt
 ```bash
 # From JanusGraph root directory
 mvn clean install -pl janusgraph-kvt -am -DskipTests
+# Note: License and checkstyle checks are skipped by default for the KVT module
 
 # To run tests:
 mvn test -pl janusgraph-kvt

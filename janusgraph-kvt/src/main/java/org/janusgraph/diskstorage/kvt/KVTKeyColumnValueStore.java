@@ -27,10 +27,10 @@ public class KVTKeyColumnValueStore implements KeyColumnValueStore {
     private volatile boolean isOpen;
     
     // Native methods for store operations
-    private static native byte[] nativeGet(long managerPtr, long txId, String tableName, byte[] key);
-    private static native boolean nativeSet(long managerPtr, long txId, String tableName, byte[] key, byte[] value);
-    private static native boolean nativeDelete(long managerPtr, long txId, String tableName, byte[] key);
-    private static native byte[][] nativeScan(long managerPtr, long txId, String tableName, 
+    private static native byte[] nativeGet(long managerPtr, long txId, long tableId, byte[] key);
+    private static native boolean nativeSet(long managerPtr, long txId, long tableId, byte[] key, byte[] value);
+    private static native boolean nativeDelete(long managerPtr, long txId, long tableId, byte[] key);
+    private static native byte[][] nativeScan(long managerPtr, long txId, long tableId, 
                                               byte[] startKey, byte[] endKey, int limit);
     
     // Separator byte for composite keys (store_key + column_name)
@@ -62,7 +62,7 @@ public class KVTKeyColumnValueStore implements KeyColumnValueStore {
         
         // Perform scan
         byte[][] results = nativeScan(manager.getNativeManagerPtr(), tx.getTransactionId(), 
-                                      name, startKey, endKey, sliceQuery.getLimit());
+                                      tableId, startKey, endKey, sliceQuery.getLimit());
         
         if (results == null || results.length == 0) {
             return StaticArrayEntryList.EMPTY_LIST;
@@ -113,7 +113,7 @@ public class KVTKeyColumnValueStore implements KeyColumnValueStore {
         if (deletions != null && !deletions.isEmpty()) {
             for (StaticBuffer column : deletions) {
                 byte[] compositeKey = buildCompositeKey(keyBytes, getByteArray(column));
-                if (!nativeDelete(manager.getNativeManagerPtr(), tx.getTransactionId(), name, compositeKey)) {
+                if (!nativeDelete(manager.getNativeManagerPtr(), tx.getTransactionId(), tableId, compositeKey)) {
                     log.warn("Failed to delete key-column: {}-{}", key, column);
                 }
             }
@@ -125,7 +125,7 @@ public class KVTKeyColumnValueStore implements KeyColumnValueStore {
                 byte[] compositeKey = buildCompositeKey(keyBytes, getByteArray(entry.getColumn()));
                 byte[] value = getByteArray(entry.getValue());
                 
-                if (!nativeSet(manager.getNativeManagerPtr(), tx.getTransactionId(), name, compositeKey, value)) {
+                if (!nativeSet(manager.getNativeManagerPtr(), tx.getTransactionId(), tableId, compositeKey, value)) {
                     throw new PermanentBackendException("Failed to set key-column: " + key + "-" + entry.getColumn());
                 }
             }
@@ -152,7 +152,7 @@ public class KVTKeyColumnValueStore implements KeyColumnValueStore {
         
         // Scan for keys in range
         byte[][] results = nativeScan(manager.getNativeManagerPtr(), tx.getTransactionId(),
-                                      name, startKey, endKey, query.getLimit());
+                                      tableId, startKey, endKey, query.getLimit());
         
         if (results == null || results.length == 0) {
             return new EmptyKeyIterator();

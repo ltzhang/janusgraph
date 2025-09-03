@@ -139,19 +139,18 @@ JNIEXPORT jboolean JNICALL Java_org_janusgraph_diskstorage_kvt_KVTStoreManager_n
 // KVTKeyColumnValueStore native methods
 
 JNIEXPORT jbyteArray JNICALL Java_org_janusgraph_diskstorage_kvt_KVTKeyColumnValueStore_nativeGet
-  (JNIEnv *env, jclass cls, jlong managerPtr, jlong txId, jstring tableName, jbyteArray key) {
+  (JNIEnv *env, jclass cls, jlong managerPtr, jlong txId, jlong tableId, jbyteArray key) {
     std::lock_guard<std::mutex> lock(g_jni_mutex);
     
     if (managerPtr == 0) {
         return nullptr;
     }
     
-    std::string table = jstringToString(env, tableName);
     std::string key_str = jbyteArrayToString(env, key);
     std::string value;
     std::string error_msg;
     
-    KVTError error = kvt_get(static_cast<uint64_t>(txId), table, key_str, value, error_msg);
+    KVTError error = kvt_get(static_cast<uint64_t>(txId), static_cast<uint64_t>(tableId), key_str, value, error_msg);
     
     if (error != KVTError::SUCCESS) {
         return nullptr;
@@ -161,7 +160,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_janusgraph_diskstorage_kvt_KVTKeyColumnVal
 }
 
 JNIEXPORT jboolean JNICALL Java_org_janusgraph_diskstorage_kvt_KVTKeyColumnValueStore_nativeSet
-  (JNIEnv *env, jclass cls, jlong managerPtr, jlong txId, jstring tableName, 
+  (JNIEnv *env, jclass cls, jlong managerPtr, jlong txId, jlong tableId, 
    jbyteArray key, jbyteArray value) {
     std::lock_guard<std::mutex> lock(g_jni_mutex);
     
@@ -169,36 +168,34 @@ JNIEXPORT jboolean JNICALL Java_org_janusgraph_diskstorage_kvt_KVTKeyColumnValue
         return JNI_FALSE;
     }
     
-    std::string table = jstringToString(env, tableName);
     std::string key_str = jbyteArrayToString(env, key);
     std::string value_str = jbyteArrayToString(env, value);
     std::string error_msg;
     
-    KVTError error = kvt_set(static_cast<uint64_t>(txId), table, key_str, value_str, error_msg);
+    KVTError error = kvt_set(static_cast<uint64_t>(txId), static_cast<uint64_t>(tableId), key_str, value_str, error_msg);
     
     return (error == KVTError::SUCCESS) ? JNI_TRUE : JNI_FALSE;
 }
 
 JNIEXPORT jboolean JNICALL Java_org_janusgraph_diskstorage_kvt_KVTKeyColumnValueStore_nativeDelete
-  (JNIEnv *env, jclass cls, jlong managerPtr, jlong txId, jstring tableName, jbyteArray key) {
+  (JNIEnv *env, jclass cls, jlong managerPtr, jlong txId, jlong tableId, jbyteArray key) {
     std::lock_guard<std::mutex> lock(g_jni_mutex);
     
     if (managerPtr == 0) {
         return JNI_FALSE;
     }
     
-    std::string table = jstringToString(env, tableName);
     std::string key_str = jbyteArrayToString(env, key);
     std::string error_msg;
     
-    KVTError error = kvt_del(static_cast<uint64_t>(txId), table, key_str, error_msg);
+    KVTError error = kvt_del(static_cast<uint64_t>(txId), static_cast<uint64_t>(tableId), key_str, error_msg);
     
     // Treat KEY_NOT_FOUND as success for delete operations
     return (error == KVTError::SUCCESS || error == KVTError::KEY_NOT_FOUND) ? JNI_TRUE : JNI_FALSE;
 }
 
 JNIEXPORT jobjectArray JNICALL Java_org_janusgraph_diskstorage_kvt_KVTKeyColumnValueStore_nativeScan
-  (JNIEnv *env, jclass cls, jlong managerPtr, jlong txId, jstring tableName,
+  (JNIEnv *env, jclass cls, jlong managerPtr, jlong txId, jlong tableId,
    jbyteArray startKey, jbyteArray endKey, jint limit) {
     std::lock_guard<std::mutex> lock(g_jni_mutex);
     
@@ -206,14 +203,13 @@ JNIEXPORT jobjectArray JNICALL Java_org_janusgraph_diskstorage_kvt_KVTKeyColumnV
         return nullptr;
     }
     
-    std::string table = jstringToString(env, tableName);
     std::string start_key = jbyteArrayToString(env, startKey);
     std::string end_key = jbyteArrayToString(env, endKey);
     
     std::vector<std::pair<std::string, std::string>> results;
     std::string error_msg;
     
-    KVTError error = kvt_scan(static_cast<uint64_t>(txId), table, start_key, end_key,
+    KVTError error = kvt_scan(static_cast<uint64_t>(txId), static_cast<uint64_t>(tableId), start_key, end_key,
                              static_cast<size_t>(limit), results, error_msg);
     
     if (error != KVTError::SUCCESS || results.empty()) {

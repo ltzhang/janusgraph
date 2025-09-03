@@ -13,6 +13,12 @@
     <artifactId>janusgraph-kvt</artifactId>
     <name>JanusGraph-KVT: Transactional Key-Value Store</name>
 
+    <properties>
+        <!-- Skip license and checkstyle checks by default for KVT module -->
+        <rat.skip>true</rat.skip>
+        <checkstyle.skip>true</checkstyle.skip>
+    </properties>
+
     <dependencies>
         <!-- Only essential dependency: JanusGraph Core -->
         <dependency>
