@@ -58,6 +58,17 @@ public class KVTKeyColumnValueStore implements KeyColumnValueStore {
         
         // DEBUG: Log the key being queried
         log.debug("JAVA getSlice - key bytes (len={}): {}", keyBytes.length, bytesToHex(keyBytes));
+        log.debug("JAVA getSlice - original limit: {}", sliceQuery.getLimit());
+        
+        // Check if this is a vertex existence query being misused for iteration
+        // When the key is exactly 10 bytes (vertex ID) and limit is 1, this might be
+        // a vertex iteration that's incorrectly using limit=1
+        if (keyBytes.length == 10 && sliceQuery.getLimit() == 1) {
+            log.warn("JAVA getSlice - Detected possible vertex iteration with limit=1, key={}", bytesToHex(keyBytes));
+            // For debugging, let's trace where this is coming from
+            Exception e = new Exception("Stack trace for limit=1 query");
+            log.debug("Stack trace:", e);
+        }
         
         // Build start and end keys for scan
         byte[] startKey = buildCompositeKey(keyBytes, getByteArray(sliceQuery.getSliceStart()));

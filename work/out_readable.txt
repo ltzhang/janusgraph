@@ -3,9 +3,11 @@ SLF4J: Found binding in [jar:file:/home/lintaoz/work/janusgraph/work/janusgraph-
 SLF4J: Found binding in [jar:file:/home/lintaoz/work/janusgraph/work/janusgraph-full-1.2.0-SNAPSHOT/lib/logback-classic-1.2.13.jar!/org/slf4j/impl/StaticLoggerBinder.class]
 SLF4J: See http://www.slf4j.org/codes.html#multiple_bindings for an explanation.
 SLF4J: Actual binding is of type [org.apache.logging.slf4j.Log4jLoggerFactory]
-21:29:52 INFO  org.apache.tinkerpop.gremlin.hadoop.jsr223.HadoopGremlinPlugin.getCustomizers - HADOOP_GREMLIN_LIBS is set to: /home/lintaoz/work/janusgraph/work/janusgraph-full-1.2.0-SNAPSHOT/lib
-21:29:52 WARN  org.apache.hadoop.util.NativeCodeLoader.<clinit> - Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
-21:29:57 WARN  org.janusgraph.diskstorage.kvt.KVTStoreManager.<clinit> - Failed to load KVT native library from resources, trying system library path
+22:42:30 INFO  org.apache.tinkerpop.gremlin.hadoop.jsr223.HadoopGremlinPlugin.getCustomizers - HADOOP_GREMLIN_LIBS is set to: /home/lintaoz/work/janusgraph/work/janusgraph-full-1.2.0-SNAPSHOT/lib
+22:42:32 WARN  org.apache.hadoop.util.NativeCodeLoader.<clinit> - Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+Starting KVT backend test...
+
+1. Loading KVT backend... 22:42:38 WARN  org.janusgraph.diskstorage.kvt.KVTStoreManager.<clinit> - Failed to load KVT native library from resources, trying system library path
 java.lang.NullPointerException: null
 	at org.janusgraph.diskstorage.kvt.KVTStoreManager.<clinit>(KVTStoreManager.java:44) [janusgraph-kvt-1.2.0-SNAPSHOT.jar:?]
 	at java.base/java.lang.Class.forName0(Native Method) ~[?:?]
@@ -20,14 +22,13 @@ java.lang.NullPointerException: null
 	at org.janusgraph.core.JanusGraphFactory.open(JanusGraphFactory.java:137) [janusgraph-core-1.2.0-SNAPSHOT.jar:?]
 	at org.janusgraph.core.JanusGraphFactory$Builder.open(JanusGraphFactory.java:277) [janusgraph-core-1.2.0-SNAPSHOT.jar:?]
 	at org.codehaus.groovy.vmplugin.v8.IndyInterface.fromCache(IndyInterface.java:321) [groovy-4.0.23.jar:4.0.23]
-	at groovysh_evaluate.run(groovysh_evaluate:4) [shell:?]
+	at groovysh_evaluate.run(groovysh_evaluate:8) [shell:?]
 	at org.codehaus.groovy.vmplugin.v8.IndyInterface.selectMethod(IndyInterface.java:355) [groovy-4.0.23.jar:4.0.23]
 	at org.codehaus.groovy.vmplugin.v8.IndyInterface.fromCache(IndyInterface.java:321) [groovy-4.0.23.jar:4.0.23]
 	at org.apache.groovy.groovysh.Interpreter.evaluate(Interpreter.groovy:82) [groovy-groovysh-4.0.23.jar:4.0.23]
 	at org.apache.groovy.groovysh.Groovysh.execute(Groovysh.groovy:209) [groovy-groovysh-4.0.23.jar:4.0.23]
 	at org.apache.tinkerpop.gremlin.console.GremlinGroovysh.super$3$execute(GremlinGroovysh.groovy) [gremlin-console-3.7.3.jar:3.7.3]
-	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[?:?]
-	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) ~[?:?]
+	at jdk.internal.reflect.GeneratedMethodAccessor17.invoke(Unknown Source) ~[?:?]
 	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[?:?]
 	at java.base/java.lang.reflect.Method.invoke(Method.java:566) ~[?:?]
 	at org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:343) [groovy-4.0.23.jar:4.0.23]
@@ -57,8 +58,8 @@ java.lang.NullPointerException: null
 	at org.apache.tinkerpop.gremlin.console.Console.<init>(Console.groovy:170) [gremlin-console-3.7.3.jar:3.7.3]
 	at org.codehaus.groovy.vmplugin.v8.IndyInterface.fromCache(IndyInterface.java:321) [groovy-4.0.23.jar:4.0.23]
 	at org.apache.tinkerpop.gremlin.console.Console.main(Console.groovy:574) [gremlin-console-3.7.3.jar:3.7.3]
-21:29:57 INFO  org.janusgraph.diskstorage.kvt.KVTStoreManager.<clinit> - Loaded KVT native library from system path
-21:29:57 INFO  org.janusgraph.diskstorage.kvt.KVTStoreManager.<init> - Initialized KVT Store Manager with native pointer: 1
+22:42:38 INFO  org.janusgraph.diskstorage.kvt.KVTStoreManager.<clinit> - Loaded KVT native library from system path
+22:42:38 INFO  org.janusgraph.diskstorage.kvt.KVTStoreManager.<init> - Initialized KVT Store Manager with native pointer: 1
 kvt_create_table: table_name=system_properties, partition_method=range -> SUCCESS, table_id=1
 kvt_start_transaction -> SUCCESS, tx_id=1
 kvt_scan: tx_id=1, table_id=1, key_start=configuration\0hidden.frozen, key_end=configuration\0hidden.frozeo, limit=2147483647DEBUG OCC scan: results_writes.size()=0, results_table.size()=0
@@ -101,7 +102,7 @@ DEBUG OCC scan: final results.size()=1
 JNI nativeScan - immediately after kvt_scan: error=0, results.size()=1, first result key_len=30, val_len=2
 JNI nativeScan creating result array with 1 pairs
 kvt_commit_transaction: tx_id=7 -> SUCCESS
-21:29:57 INFO  org.janusgraph.diskstorage.configuration.builder.ReadConfigurationBuilder.setupTimestampProvider - Set default timestamp provider MICRO
+22:42:38 INFO  org.janusgraph.diskstorage.configuration.builder.ReadConfigurationBuilder.setupTimestampProvider - Set default timestamp provider MICRO
 kvt_start_transaction -> SUCCESS, tx_id=8
 kvt_set: tx_id=8, table_id=1, key=configuration\0hidden.frozen, value=\x8f\x01 -> SUCCESS
 kvt_commit_transaction: tx_id=8 -> SUCCESS
@@ -113,16 +114,16 @@ DEBUG OCC scan: final results.size()=4
 JNI nativeScan - immediately after kvt_scan: error=0, results.size()=4, first result key_len=38, val_len=16
 JNI nativeScan creating result array with 4 pairs
 kvt_commit_transaction: tx_id=9 -> SUCCESS
-21:29:57 INFO  org.janusgraph.diskstorage.kvt.KVTStoreManager.close - KVT Store Manager closed
-21:29:57 INFO  org.janusgraph.graphdb.idmanagement.UniqueInstanceIdRetriever.getOrGenerateUniqueInstanceId - Generated unique-instance-id=7f000101377874-lintao-eloqdata1
-21:29:57 INFO  org.janusgraph.diskstorage.kvt.KVTStoreManager.<init> - Initialized KVT Store Manager with native pointer: 1
-21:29:57 INFO  org.janusgraph.diskstorage.Backend.<init> - kvt supports multi-key queries. Thus, option root.storage.parallel-backend-ops is ignored in favor of multi-key queries. Backend-ops executor pool will not be created for this storage backend.
+22:42:38 INFO  org.janusgraph.diskstorage.kvt.KVTStoreManager.close - KVT Store Manager closed
+22:42:38 INFO  org.janusgraph.graphdb.idmanagement.UniqueInstanceIdRetriever.getOrGenerateUniqueInstanceId - Generated unique-instance-id=7f000101471420-lintao-eloqdata1
+22:42:38 INFO  org.janusgraph.diskstorage.kvt.KVTStoreManager.<init> - Initialized KVT Store Manager with native pointer: 1
+22:42:38 INFO  org.janusgraph.diskstorage.Backend.<init> - kvt supports multi-key queries. Thus, option root.storage.parallel-backend-ops is ignored in favor of multi-key queries. Backend-ops executor pool will not be created for this storage backend.
 kvt_create_table: table_name=janusgraph_ids, partition_method=range -> SUCCESS, table_id=1
 kvt_create_table: table_name=edgestore, partition_method=range -> SUCCESS, table_id=2
 kvt_create_table: table_name=graphindex, partition_method=range -> SUCCESS, table_id=3
 kvt_create_table: table_name=txlog, partition_method=range -> SUCCESS, table_id=4
 kvt_start_transaction -> SUCCESS, tx_id=1
-kvt_scan: tx_id=1, table_id=4, key_start=\xff\xff\xff\xff\xa07f000101377874-lintao-eloqdata\xb1\0\x01, key_end=\xff\xff\xff\xff\xa07f000101377874-lintao-eloqdata\xb1\0\x02, limit=2DEBUG OCC scan: results_writes.size()=0, results_table.size()=0
+kvt_scan: tx_id=1, table_id=4, key_start=\xff\xff\xff\xff\xa07f000101471420-lintao-eloqdata\xb1\0\x01, key_end=\xff\xff\xff\xff\xa07f000101471420-lintao-eloqdata\xb1\0\x02, limit=2DEBUG OCC scan: results_writes.size()=0, results_table.size()=0
 DEBUG OCC scan: merged results_table.size()=0
 DEBUG OCC scan: final results.size()=0
  -> SUCCESS, count=0
@@ -131,7 +132,7 @@ JNI nativeScan returning null (error=0, results.empty()=1)
 kvt_commit_transaction: tx_id=1 -> SUCCESS
 kvt_create_table: table_name=systemlog, partition_method=range -> SUCCESS, table_id=5
 kvt_start_transaction -> SUCCESS, tx_id=2
-kvt_scan: tx_id=2, table_id=5, key_start=\xff\xff\xff\xff\xa07f000101377874-lintao-eloqdata\xb1\0\x01, key_end=\xff\xff\xff\xff\xa07f000101377874-lintao-eloqdata\xb1\0\x02, limit=2DEBUG OCC scan: results_writes.size()=0, results_table.size()=0
+kvt_scan: tx_id=2, table_id=5, key_start=\xff\xff\xff\xff\xa07f000101471420-lintao-eloqdata\xb1\0\x01, key_end=\xff\xff\xff\xff\xa07f000101471420-lintao-eloqdata\xb1\0\x02, limit=2DEBUG OCC scan: results_writes.size()=0, results_table.size()=0
 DEBUG OCC scan: merged results_table.size()=0
 DEBUG OCC scan: final results.size()=0
  -> SUCCESS, count=0
@@ -139,10 +140,10 @@ JNI nativeScan - immediately after kvt_scan: error=0, results.size()=0
 JNI nativeScan returning null (error=0, results.empty()=1)
 kvt_commit_transaction: tx_id=2 -> SUCCESS
 kvt_create_table: table_name=system_properties, partition_method=range -> SUCCESS, table_id=6
-21:29:57 INFO  org.janusgraph.graphdb.database.IndexSerializer.<init> - Hashing index keys
-21:29:57 INFO  org.janusgraph.graphdb.database.StandardJanusGraph.<init> - Gremlin script evaluation is disabled
+22:42:38 INFO  org.janusgraph.graphdb.database.IndexSerializer.<init> - Hashing index keys
+22:42:38 INFO  org.janusgraph.graphdb.database.StandardJanusGraph.<init> - Gremlin script evaluation is disabled
 kvt_start_transaction -> SUCCESS, tx_id=3
-kvt_scan: tx_id=3, table_id=6, key_start=configuration\0system-registration.7f000101377874-lintao-eloqdata1.startup-time, key_end=configuration\0system-registration.7f000101377874-lintao-eloqdata1.startup-timf, limit=2147483647DEBUG OCC scan: results_writes.size()=0, results_table.size()=0
+kvt_scan: tx_id=3, table_id=6, key_start=configuration\0system-registration.7f000101471420-lintao-eloqdata1.startup-time, key_end=configuration\0system-registration.7f000101471420-lintao-eloqdata1.startup-timf, limit=2147483647DEBUG OCC scan: results_writes.size()=0, results_table.size()=0
 DEBUG OCC scan: merged results_table.size()=0
 DEBUG OCC scan: final results.size()=0
  -> SUCCESS, count=0
@@ -150,17 +151,238 @@ JNI nativeScan - immediately after kvt_scan: error=0, results.size()=0
 JNI nativeScan returning null (error=0, results.empty()=1)
 kvt_commit_transaction: tx_id=3 -> SUCCESS
 kvt_start_transaction -> SUCCESS, tx_id=4
-kvt_set: tx_id=4, table_id=6, key=configuration\0system-registration.7f000101377874-lintao-eloqdata1.startup-time, value=\xc1\x80\0\0\0h\xb8B\xd5\x02M[Y\xb0 -> SUCCESS
+kvt_set: tx_id=4, table_id=6, key=configuration\0system-registration.7f000101471420-lintao-eloqdata1.startup-time, value=\xc1\x80\0\0\0h\xb8S\xde\x04DfC\xe0 -> SUCCESS
 kvt_commit_transaction: tx_id=4 -> SUCCESS
-21:29:57 INFO  org.janusgraph.diskstorage.log.kcvs.KCVSLog$MessagePuller.initializeTimepoint - Loaded unidentified ReadMarker start time 2025-09-03T13:29:57.354291Z into org.janusgraph.diskstorage.log.kcvs.KCVSLog$MessagePuller@6315bb4
-\xe2\x9c\x93 KVT backend loaded successfully
-kvt_start_transaction -> SUCCESS, tx_id=5
-kvt_del: tx_id=5, table_id=6, key=configuration\0system-registration.7f000101377874-lintao-eloqdata1.startup-time -> SUCCESS
-kvt_commit_transaction: tx_id=5 -> SUCCESS
+22:42:38 INFO  org.janusgraph.diskstorage.log.kcvs.KCVSLog$MessagePuller.initializeTimepoint - Loaded unidentified ReadMarker start time 2025-09-03T14:42:38.611760Z into org.janusgraph.diskstorage.log.kcvs.KCVSLog$MessagePuller@29f0e941
+\xe2\x9c\x93
+2. Adding vertices... kvt_start_transaction -> SUCCESS, tx_id=5
 kvt_start_transaction -> SUCCESS, tx_id=6
-kvt_set: tx_id=6, table_id=5, key=\xff\xff\xff\xff\xa07f000101377874-lintao-eloqdata\xb1\0\x01, value=\0\0\0\0\0\0\0\0 -> SUCCESS
+kvt_scan: tx_id=6, table_id=1, key_start=(\0\0\0\0\0\0\0\0\0, key_end=(\0\0\0\0\0\0\0\0\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff, limit=5DEBUG OCC scan: results_writes.size()=0, results_table.size()=0
+DEBUG OCC scan: merged results_table.size()=0
+DEBUG OCC scan: final results.size()=0
+ -> SUCCESS, count=0
+JNI nativeScan - immediately after kvt_scan: error=0, results.size()=0
+JNI nativeScan returning null (error=0, results.empty()=1)
 kvt_commit_transaction: tx_id=6 -> SUCCESS
 kvt_start_transaction -> SUCCESS, tx_id=7
-kvt_set: tx_id=7, table_id=4, key=\xff\xff\xff\xff\xa07f000101377874-lintao-eloqdata\xb1\0\x01, value=\0\0\0\0\0\0\0\0 -> SUCCESS
+kvt_set: tx_id=7, table_id=1, key=(\0\0\0\0\0\0\0\0\xff\xff\xff\xff\xff\xff\xd8\xef\0\x06=\xe6\x9d\xbf\xf3\xcb7f000101471420-lintao-eloqdata1, value= -> SUCCESS
 kvt_commit_transaction: tx_id=7 -> SUCCESS
-21:29:57 INFO  org.janusgraph.diskstorage.kvt.KVTStoreManager.close - KVT Store Manager closed
+kvt_start_transaction -> SUCCESS, tx_id=8
+kvt_scan: tx_id=8, table_id=1, key_start=(\0\0\0\0\0\0\0\0\xff\xff\xff\xff\xff\xff\xd8\xef\0\0\0\0\0\0\0\0, key_end=(\0\0\0\0\0\0\0\0\xff\xff\xff\xff\xff\xff\xd8\xef\xff\xff\xff\xff\xff\xff\xff\xff, limit=2147483647DEBUG OCC scan: results_writes.size()=0, results_table.size()=1
+DEBUG OCC scan: merged results_table.size()=1
+DEBUG OCC scan: final results.size()=1
+ -> SUCCESS, count=1 (first key len=56, val len=0)
+JNI nativeScan - immediately after kvt_scan: error=0, results.size()=1, first result key_len=56, val_len=0
+JNI nativeScan creating result array with 1 pairs
+kvt_commit_transaction: tx_id=8 -> SUCCESS
+kvt_start_transaction -> SUCCESS, tx_id=9
+kvt_scan: tx_id=9, table_id=1, key_start=(\0\0\0\0\0\0\x03\0\0, key_end=(\0\0\0\0\0\0\x03\0\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff, limit=5DEBUG OCC scan: results_writes.size()=0, results_table.size()=0
+DEBUG OCC scan: merged results_table.size()=0
+DEBUG OCC scan: final results.size()=0
+ -> SUCCESS, count=0
+JNI nativeScan - immediately after kvt_scan: error=0, results.size()=0
+JNI nativeScan returning null (error=0, results.empty()=1)
+kvt_commit_transaction: tx_id=9 -> SUCCESS
+kvt_start_transaction -> SUCCESS, tx_id=10
+kvt_set: tx_id=10, table_id=1, key=(\0\0\0\0\0\0\x03\0\xff\xff\xff\xff\xff\xfe\xc7\x7f\0\x06=\xe6\x9d\xc5!\xb57f000101471420-lintao-eloqdata1, value= -> SUCCESS
+kvt_commit_transaction: tx_id=10 -> SUCCESS
+kvt_start_transaction -> SUCCESS, tx_id=11
+kvt_scan: tx_id=11, table_id=1, key_start=(\0\0\0\0\0\0\x03\0\xff\xff\xff\xff\xff\xfe\xc7\x7f\0\0\0\0\0\0\0\0, key_end=(\0\0\0\0\0\0\x03\0\xff\xff\xff\xff\xff\xfe\xc7\x7f\xff\xff\xff\xff\xff\xff\xff\xff, limit=2147483647DEBUG OCC scan: results_writes.size()=0, results_table.size()=1
+DEBUG OCC scan: merged results_table.size()=1
+DEBUG OCC scan: final results.size()=1
+ -> SUCCESS, count=1 (first key len=56, val len=0)
+JNI nativeScan - immediately after kvt_scan: error=0, results.size()=1, first result key_len=56, val_len=0
+JNI nativeScan creating result array with 1 pairs
+kvt_commit_transaction: tx_id=11 -> SUCCESS
+kvt_start_transaction -> SUCCESS, tx_id=12
+kvt_scan: tx_id=12, table_id=3, key_start=g\xe4<"\x10\xa5\xa0rt\x1etes\xf4\0\0, key_end=g\xe4<"\x10\xa5\xa0rt\x1etes\xf4\0\xff, limit=2147483647DEBUG OCC scan: results_writes.size()=0, results_table.size()=0
+DEBUG OCC scan: merged results_table.size()=0
+DEBUG OCC scan: final results.size()=0
+ -> SUCCESS, count=0
+JNI nativeScan - immediately after kvt_scan: error=0, results.size()=0
+JNI nativeScan returning null (error=0, results.empty()=1)
+kvt_rollback_transaction: tx_id=12 -> SUCCESS
+kvt_start_transaction -> SUCCESS, tx_id=13
+kvt_scan: tx_id=13, table_id=1, key_start=\0\0\0\0\0\0\0\x04\0\0, key_end=\0\0\0\0\0\0\0\x04\0\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff, limit=5DEBUG OCC scan: results_writes.size()=0, results_table.size()=0
+DEBUG OCC scan: merged results_table.size()=0
+DEBUG OCC scan: final results.size()=0
+ -> SUCCESS, count=0
+JNI nativeScan - immediately after kvt_scan: error=0, results.size()=0
+JNI nativeScan returning null (error=0, results.empty()=1)
+kvt_commit_transaction: tx_id=13 -> SUCCESS
+kvt_start_transaction -> SUCCESS, tx_id=14
+kvt_set: tx_id=14, table_id=1, key=\0\0\0\0\0\0\0\x04\0\xff\xff\xff\xff\xff\xff\xff\xcd\0\x06=\xe6\x9d\xca\x95/7f000101471420-lintao-eloqdata1, value= -> SUCCESS
+kvt_commit_transaction: tx_id=14 -> SUCCESS
+kvt_start_transaction -> SUCCESS, tx_id=15
+kvt_scan: tx_id=15, table_id=1, key_start=\0\0\0\0\0\0\0\x04\0\xff\xff\xff\xff\xff\xff\xff\xcd\0\0\0\0\0\0\0\0, key_end=\0\0\0\0\0\0\0\x04\0\xff\xff\xff\xff\xff\xff\xff\xcd\xff\xff\xff\xff\xff\xff\xff\xff, limit=2147483647DEBUG OCC scan: results_writes.size()=0, results_table.size()=1
+DEBUG OCC scan: merged results_table.size()=1
+DEBUG OCC scan: final results.size()=1
+ -> SUCCESS, count=1 (first key len=56, val len=0)
+JNI nativeScan - immediately after kvt_scan: error=0, results.size()=1, first result key_len=56, val_len=0
+JNI nativeScan creating result array with 1 pairs
+kvt_commit_transaction: tx_id=15 -> SUCCESS
+kvt_start_transaction -> SUCCESS, tx_id=16
+kvt_scan: tx_id=16, table_id=1, key_start=\0\0\0\0\0\0\0\x04\0\0, key_end=\0\0\0\0\0\0\0\x04\0\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff, limit=5DEBUG OCC scan: results_writes.size()=0, results_table.size()=1
+DEBUG OCC scan: merged results_table.size()=1
+DEBUG OCC scan: final results.size()=1
+ -> SUCCESS, count=1 (first key len=56, val len=0)
+JNI nativeScan - immediately after kvt_scan: error=0, results.size()=1, first result key_len=56, val_len=0
+JNI nativeScan creating result array with 1 pairs
+kvt_commit_transaction: tx_id=16 -> SUCCESS
+kvt_start_transaction -> SUCCESS, tx_id=17
+kvt_set: tx_id=17, table_id=1, key=\0\0\0\0\0\0\0\x04\0\xff\xff\xff\xff\xff\xff\xff\x9b\0\x06=\xe6\x9d\xcf\xa4|7f000101471420-lintao-eloqdata1, value= -> SUCCESS
+kvt_commit_transaction: tx_id=17 -> SUCCESS
+kvt_start_transaction -> SUCCESS, tx_id=18
+kvt_scan: tx_id=18, table_id=1, key_start=\0\0\0\0\0\0\0\x04\0\xff\xff\xff\xff\xff\xff\xff\x9b\0\0\0\0\0\0\0\0, key_end=\0\0\0\0\0\0\0\x04\0\xff\xff\xff\xff\xff\xff\xff\x9b\xff\xff\xff\xff\xff\xff\xff\xff, limit=2147483647DEBUG OCC scan: results_writes.size()=0, results_table.size()=1
+DEBUG OCC scan: merged results_table.size()=1
+DEBUG OCC scan: final results.size()=1
+ -> SUCCESS, count=1 (first key len=56, val len=0)
+JNI nativeScan - immediately after kvt_scan: error=0, results.size()=1, first result key_len=56, val_len=0
+JNI nativeScan creating result array with 1 pairs
+kvt_commit_transaction: tx_id=18 -> SUCCESS
+kvt_start_transaction -> SUCCESS, tx_id=19
+kvt_scan: tx_id=19, table_id=1, key_start=\0\0\0\0\0\0\0\x03\0\0, key_end=\0\0\0\0\0\0\0\x03\0\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff, limit=5DEBUG OCC scan: results_writes.size()=0, results_table.size()=0
+DEBUG OCC scan: merged results_table.size()=0
+DEBUG OCC scan: final results.size()=0
+ -> SUCCESS, count=0
+JNI nativeScan - immediately after kvt_scan: error=0, results.size()=0
+JNI nativeScan returning null (error=0, results.empty()=1)
+kvt_commit_transaction: tx_id=19 -> SUCCESS
+kvt_start_transaction -> SUCCESS, tx_id=20
+kvt_set: tx_id=20, table_id=1, key=\0\0\0\0\0\0\0\x03\0\xff\xff\xff\xff\xff\xfe\xc7\x7f\0\x06=\xe6\x9d\xd4\xb5-7f000101471420-lintao-eloqdata1, value= -> SUCCESS
+kvt_commit_transaction: tx_id=20 -> SUCCESS
+kvt_start_transaction -> SUCCESS, tx_id=21
+kvt_scan: tx_id=21, table_id=1, key_start=\0\0\0\0\0\0\0\x03\0\xff\xff\xff\xff\xff\xfe\xc7\x7f\0\0\0\0\0\0\0\0, key_end=\0\0\0\0\0\0\0\x03\0\xff\xff\xff\xff\xff\xfe\xc7\x7f\xff\xff\xff\xff\xff\xff\xff\xff, limit=2147483647DEBUG OCC scan: results_writes.size()=0, results_table.size()=1
+DEBUG OCC scan: merged results_table.size()=1
+DEBUG OCC scan: final results.size()=1
+ -> SUCCESS, count=1 (first key len=56, val len=0)
+JNI nativeScan - immediately after kvt_scan: error=0, results.size()=1, first result key_len=56, val_len=0
+JNI nativeScan creating result array with 1 pairs
+kvt_commit_transaction: tx_id=21 -> SUCCESS
+kvt_scan: tx_id=5, table_id=3, key_start=g\xe4<"\x10\xa5\xa0rt\x1etes\xf4\0\0, key_end=g\xe4<"\x10\xa5\xa0rt\x1etes\xf4\0\xff, limit=2147483647DEBUG OCC scan: results_writes.size()=0, results_table.size()=0
+DEBUG OCC scan: merged results_table.size()=0
+DEBUG OCC scan: final results.size()=0
+ -> SUCCESS, count=0
+JNI nativeScan - immediately after kvt_scan: error=0, results.size()=0
+JNI nativeScan returning null (error=0, results.empty()=1)
+kvt_start_transaction -> SUCCESS, tx_id=22
+kvt_scan: tx_id=22, table_id=1, key_start=\xa0\0\0\0\0\0\0\0\0\0, key_end=\xa0\0\0\0\0\0\0\0\0\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff, limit=5DEBUG OCC scan: results_writes.size()=0, results_table.size()=0
+DEBUG OCC scan: merged results_table.size()=0
+DEBUG OCC scan: final results.size()=0
+ -> SUCCESS, count=0
+JNI nativeScan - immediately after kvt_scan: error=0, results.size()=0
+JNI nativeScan returning null (error=0, results.empty()=1)
+kvt_commit_transaction: tx_id=22 -> SUCCESS
+kvt_start_transaction -> SUCCESS, tx_id=23
+kvt_set: tx_id=23, table_id=1, key=\xa0\0\0\0\0\0\0\0\0\xff\xff\xff\xff\xff\xff\xd8\xef\0\x06=\xe6\x9d\xda\x01\xcc7f000101471420-lintao-eloqdata1, value= -> SUCCESS
+kvt_commit_transaction: tx_id=23 -> SUCCESS
+kvt_start_transaction -> SUCCESS, tx_id=24
+kvt_scan: tx_id=24, table_id=1, key_start=\xa0\0\0\0\0\0\0\0\0\xff\xff\xff\xff\xff\xff\xd8\xef\0\0\0\0\0\0\0\0, key_end=\xa0\0\0\0\0\0\0\0\0\xff\xff\xff\xff\xff\xff\xd8\xef\xff\xff\xff\xff\xff\xff\xff\xff, limit=2147483647DEBUG OCC scan: results_writes.size()=0, results_table.size()=1
+DEBUG OCC scan: merged results_table.size()=1
+DEBUG OCC scan: final results.size()=1
+ -> SUCCESS, count=1 (first key len=56, val len=0)
+JNI nativeScan - immediately after kvt_scan: error=0, results.size()=1, first result key_len=56, val_len=0
+JNI nativeScan creating result array with 1 pairs
+kvt_commit_transaction: tx_id=24 -> SUCCESS
+kvt_start_transaction -> SUCCESS, tx_id=25
+kvt_scan: tx_id=25, table_id=1, key_start=\xa0\0\0\0\0\0\0\x03\0\0, key_end=\xa0\0\0\0\0\0\0\x03\0\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff, limit=5DEBUG OCC scan: results_writes.size()=0, results_table.size()=0
+DEBUG OCC scan: merged results_table.size()=0
+DEBUG OCC scan: final results.size()=0
+ -> SUCCESS, count=0
+JNI nativeScan - immediately after kvt_scan: error=0, results.size()=0
+JNI nativeScan returning null (error=0, results.empty()=1)
+kvt_commit_transaction: tx_id=25 -> SUCCESS
+kvt_start_transaction -> SUCCESS, tx_id=26
+kvt_set: tx_id=26, table_id=1, key=\xa0\0\0\0\0\0\0\x03\0\xff\xff\xff\xff\xff\xfe\xc7\x7f\0\x06=\xe6\x9d\xdf\x11\x9f7f000101471420-lintao-eloqdata1, value= -> SUCCESS
+kvt_commit_transaction: tx_id=26 -> SUCCESS
+kvt_start_transaction -> SUCCESS, tx_id=27
+kvt_scan: tx_id=27, table_id=1, key_start=\xa0\0\0\0\0\0\0\x03\0\xff\xff\xff\xff\xff\xfe\xc7\x7f\0\0\0\0\0\0\0\0, key_end=\xa0\0\0\0\0\0\0\x03\0\xff\xff\xff\xff\xff\xfe\xc7\x7f\xff\xff\xff\xff\xff\xff\xff\xff, limit=2147483647DEBUG OCC scan: results_writes.size()=0, results_table.size()=1
+DEBUG OCC scan: merged results_table.size()=1
+DEBUG OCC scan: final results.size()=1
+ -> SUCCESS, count=1 (first key len=56, val len=0)
+JNI nativeScan - immediately after kvt_scan: error=0, results.size()=1, first result key_len=56, val_len=0
+JNI nativeScan creating result array with 1 pairs
+kvt_commit_transaction: tx_id=27 -> SUCCESS
+kvt_set: tx_id=5, table_id=3, key=g\xe4<"\x10\xa5\xa0rt\x1etes\xf4\0\0, value=\x08\x85 -> SUCCESS
+kvt_set: tx_id=5, table_id=3, key=CWc\x02\x11\xa5\x81\0\0\x08\x85\x0c\x80, value=\x08\x85 -> SUCCESS
+kvt_set: tx_id=5, table_id=2, key=(\0\0\0\0\0\0\x80\0P\xa0, value=\xa0vertex\xb1\x08\x85 -> SUCCESS
+kvt_set: tx_id=5, table_id=2, key=(\0\0\0\0\0\0\x80\0\x02, value=\0\x01\x04\x85 -> SUCCESS
+kvt_set: tx_id=5, table_id=2, key=\0\0\0\0\0\0\x04\x05\0\x10\xc0, value=\xa0rt\x1etes\xf4\x04\x80 -> SUCCESS
+kvt_set: tx_id=5, table_id=2, key=\0\0\0\0\0\0\x04\x05\0\x10\xc2\x80 \0, value=\x99\x81\x01\x8e\0\x83\x80 -> SUCCESS
+kvt_set: tx_id=5, table_id=2, key=\0\0\0\0\0\0\x04\x05\0\x10\xc2\x80\x1c\0, value=\xad\x80\x01\x8e\0\x82\x80 -> SUCCESS
+kvt_set: tx_id=5, table_id=2, key=\0\0\0\0\0\0\x04\x05\0\x10\xc8, value=\0\x80\x06=\xe6\x9d\xd9\xd6\x18\x10\x80 -> SUCCESS
+kvt_set: tx_id=5, table_id=2, key=\0\0\0\0\0\0\x04\x05\0\x10\xc2\x80,\0, value=\xb3\x82\x01\x8e\0\x87\x80 -> SUCCESS
+kvt_set: tx_id=5, table_id=2, key=\0\0\0\0\0\0\x04\x05\0\x10\xc4, value=\0\x81\x0c\x80 -> SUCCESS
+kvt_set: tx_id=5, table_id=2, key=\0\0\0\0\0\0\x04\x05\0\x10\xc2\x80(\0, value=\xbc\x92\x01\x8e\0\x85\x80 -> SUCCESS
+kvt_set: tx_id=5, table_id=2, key=\0\0\0\0\0\0\x04\x05\0\x10\xc2\x80$\0, value=\xae\x83\x01\x8e\0\x84\x80 -> SUCCESS
+kvt_set: tx_id=5, table_id=2, key=\0\0\0\0\0\0\x04\x05\0\x10\xc2\x80\x18\0, value=\x99\x81\x01\x8e\0\x81\x80 -> SUCCESS
+kvt_set: tx_id=5, table_id=2, key=\0\0\0\0\0\0\x04\x05\0\x10\xc2\x80\x14\0, value=\x8f\0\x01\x8e\0\x80\x80 -> SUCCESS
+kvt_set: tx_id=5, table_id=2, key=\0\0\0\0\0\0\x04\x05\0\x02, value=\0\x01\x08\x80 -> SUCCESS
+kvt_set: tx_id=5, table_id=2, key=\xa0\0\0\0\0\0\0\x80\0\x02, value=\0\x01\x04\x94 -> SUCCESS
+kvt_set: tx_id=5, table_id=2, key=\xa0\0\0\0\0\0\0\x80\0P\xa0, value=\xa0vertex\xb2\x08\x94 -> SUCCESS
+kvt_commit_transaction: tx_id=5 -> SUCCESS
+\xe2\x9c\x93
+3. Querying vertices... kvt_start_transaction -> SUCCESS, tx_id=28
+22:42:41 WARN  org.janusgraph.graphdb.transaction.StandardJanusGraphTx$3.execute - Query requires iterating over all vertices [[]]. For better performance, use indexes
+kvt_scan: tx_id=28, table_id=2, key_start=\0\0\0\0\0\0\0\0, key_end=\xff\xff\xff\xff\xff\xff\xff\xff, limit=1DEBUG OCC scan: results_writes.size()=0, results_table.size()=1
+DEBUG OCC scan: merged results_table.size()=1
+DEBUG OCC scan: final results.size()=1
+ -> SUCCESS, count=1 (first key len=10, val len=4)
+JNI nativeScan - immediately after kvt_scan: error=0, results.size()=1, first result key_len=10, val_len=4
+JNI nativeScan creating result array with 1 pairs
+\xe2\x9c\x97
+Error: Expected 2 vertices, got 0
+java.lang.Exception: Expected 2 vertices, got 0
+	at org.codehaus.groovy.vmplugin.v8.IndyInterface.fromCache(IndyInterface.java:321)
+	at groovysh_evaluate.run(groovysh_evaluate:22)
+	at org.codehaus.groovy.vmplugin.v8.IndyInterface.selectMethod(IndyInterface.java:355)
+	at org.codehaus.groovy.vmplugin.v8.IndyInterface.fromCache(IndyInterface.java:321)
+	at org.apache.groovy.groovysh.Interpreter.evaluate(Interpreter.groovy:82)
+	at org.apache.groovy.groovysh.Groovysh.execute(Groovysh.groovy:209)
+	at org.apache.tinkerpop.gremlin.console.GremlinGroovysh.super$3$execute(GremlinGroovysh.groovy)
+	at jdk.internal.reflect.GeneratedMethodAccessor17.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:343)
+	at groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:328)
+	at groovy.lang.MetaClassImpl.doInvokeMethod(MetaClassImpl.java:1333)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1088)
+	at org.codehaus.groovy.runtime.ScriptBytecodeAdapter.invokeMethodOnSuperN(ScriptBytecodeAdapter.java:146)
+	at org.apache.tinkerpop.gremlin.console.GremlinGroovysh.execute(GremlinGroovysh.groovy:87)
+	at org.codehaus.groovy.vmplugin.v8.IndyInterface.fromCache(IndyInterface.java:321)
+	at org.apache.tinkerpop.gremlin.console.Console$_executeInShell_closure17.doCall(Console.groovy:491)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:343)
+	at groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:328)
+	at org.codehaus.groovy.runtime.metaclass.ClosureMetaClass.invokeMethod(ClosureMetaClass.java:279)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1007)
+	at groovy.lang.Closure.call(Closure.java:433)
+	at org.codehaus.groovy.runtime.DefaultGroovyMethods.eachWithIndex(DefaultGroovyMethods.java:2310)
+	at org.codehaus.groovy.runtime.DefaultGroovyMethods.eachWithIndex(DefaultGroovyMethods.java:2290)
+	at org.codehaus.groovy.runtime.DefaultGroovyMethods.eachWithIndex(DefaultGroovyMethods.java:2340)
+	at org.codehaus.groovy.runtime.dgm$220.doMethodInvoke(Unknown Source)
+	at org.codehaus.groovy.vmplugin.v8.IndyInterface.fromCache(IndyInterface.java:321)
+	at org.apache.tinkerpop.gremlin.console.Console.executeInShell(Console.groovy:468)
+	at org.codehaus.groovy.vmplugin.v8.IndyInterface.fromCache(IndyInterface.java:321)
+	at org.apache.tinkerpop.gremlin.console.Console.<init>(Console.groovy:170)
+	at org.codehaus.groovy.vmplugin.v8.IndyInterface.fromCache(IndyInterface.java:321)
+	at org.apache.tinkerpop.gremlin.console.Console.main(Console.groovy:574)
+
+====================================
+\xe2\x9d\x8c TESTS FAILED
+  - Expected 2 vertices, got 0
+====================================
+kvt_start_transaction -> SUCCESS, tx_id=29
+kvt_del: tx_id=29, table_id=6, key=configuration\0system-registration.7f000101471420-lintao-eloqdata1.startup-time -> SUCCESS
+kvt_commit_transaction: tx_id=29 -> SUCCESS
+kvt_rollback_transaction: tx_id=28 -> SUCCESS
+kvt_start_transaction -> SUCCESS, tx_id=30
+kvt_set: tx_id=30, table_id=5, key=\xff\xff\xff\xff\xa07f000101471420-lintao-eloqdata\xb1\0\x01, value=\0\0\0\0\0\0\0\0 -> SUCCESS
+kvt_commit_transaction: tx_id=30 -> SUCCESS
+kvt_start_transaction -> SUCCESS, tx_id=31
+kvt_set: tx_id=31, table_id=4, key=\xff\xff\xff\xff\xa07f000101471420-lintao-eloqdata\xb1\0\x01, value=\0\0\0\0\0\0\0\0 -> SUCCESS
+kvt_commit_transaction: tx_id=31 -> SUCCESS
+22:42:41 INFO  org.janusgraph.diskstorage.kvt.KVTStoreManager.close - KVT Store Manager closed
