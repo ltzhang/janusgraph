@@ -1,0 +1,166 @@
+SLF4J: Class path contains multiple SLF4J bindings.
+SLF4J: Found binding in [jar:file:/home/lintaoz/work/janusgraph/work/janusgraph-full-1.2.0-SNAPSHOT/lib/log4j-slf4j-impl-2.23.1.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: Found binding in [jar:file:/home/lintaoz/work/janusgraph/work/janusgraph-full-1.2.0-SNAPSHOT/lib/logback-classic-1.2.13.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: See http://www.slf4j.org/codes.html#multiple_bindings for an explanation.
+SLF4J: Actual binding is of type [org.apache.logging.slf4j.Log4jLoggerFactory]
+21:29:52 INFO  org.apache.tinkerpop.gremlin.hadoop.jsr223.HadoopGremlinPlugin.getCustomizers - HADOOP_GREMLIN_LIBS is set to: /home/lintaoz/work/janusgraph/work/janusgraph-full-1.2.0-SNAPSHOT/lib
+21:29:52 WARN  org.apache.hadoop.util.NativeCodeLoader.<clinit> - Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+21:29:57 WARN  org.janusgraph.diskstorage.kvt.KVTStoreManager.<clinit> - Failed to load KVT native library from resources, trying system library path
+java.lang.NullPointerException: null
+	at org.janusgraph.diskstorage.kvt.KVTStoreManager.<clinit>(KVTStoreManager.java:44) [janusgraph-kvt-1.2.0-SNAPSHOT.jar:?]
+	at java.base/java.lang.Class.forName0(Native Method) ~[?:?]
+	at java.base/java.lang.Class.forName(Class.java:315) [?:?]
+	at org.janusgraph.util.system.ConfigurationUtil.instantiate(ConfigurationUtil.java:75) [janusgraph-core-1.2.0-SNAPSHOT.jar:?]
+	at org.janusgraph.diskstorage.Backend.getImplementationClass(Backend.java:561) [janusgraph-core-1.2.0-SNAPSHOT.jar:?]
+	at org.janusgraph.diskstorage.Backend.getStorageManager(Backend.java:522) [janusgraph-core-1.2.0-SNAPSHOT.jar:?]
+	at org.janusgraph.graphdb.configuration.builder.GraphDatabaseConfigurationBuilder.build(GraphDatabaseConfigurationBuilder.java:64) [janusgraph-core-1.2.0-SNAPSHOT.jar:?]
+	at org.janusgraph.core.util.GraphFactoryUtils.defineSchemaAndStart(GraphFactoryUtils.java:26) [janusgraph-core-1.2.0-SNAPSHOT.jar:?]
+	at org.janusgraph.core.JanusGraphFactory.open(JanusGraphFactory.java:176) [janusgraph-core-1.2.0-SNAPSHOT.jar:?]
+	at org.janusgraph.core.JanusGraphFactory.open(JanusGraphFactory.java:147) [janusgraph-core-1.2.0-SNAPSHOT.jar:?]
+	at org.janusgraph.core.JanusGraphFactory.open(JanusGraphFactory.java:137) [janusgraph-core-1.2.0-SNAPSHOT.jar:?]
+	at org.janusgraph.core.JanusGraphFactory$Builder.open(JanusGraphFactory.java:277) [janusgraph-core-1.2.0-SNAPSHOT.jar:?]
+	at org.codehaus.groovy.vmplugin.v8.IndyInterface.fromCache(IndyInterface.java:321) [groovy-4.0.23.jar:4.0.23]
+	at groovysh_evaluate.run(groovysh_evaluate:4) [shell:?]
+	at org.codehaus.groovy.vmplugin.v8.IndyInterface.selectMethod(IndyInterface.java:355) [groovy-4.0.23.jar:4.0.23]
+	at org.codehaus.groovy.vmplugin.v8.IndyInterface.fromCache(IndyInterface.java:321) [groovy-4.0.23.jar:4.0.23]
+	at org.apache.groovy.groovysh.Interpreter.evaluate(Interpreter.groovy:82) [groovy-groovysh-4.0.23.jar:4.0.23]
+	at org.apache.groovy.groovysh.Groovysh.execute(Groovysh.groovy:209) [groovy-groovysh-4.0.23.jar:4.0.23]
+	at org.apache.tinkerpop.gremlin.console.GremlinGroovysh.super$3$execute(GremlinGroovysh.groovy) [gremlin-console-3.7.3.jar:3.7.3]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[?:?]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) ~[?:?]
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[?:?]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566) ~[?:?]
+	at org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:343) [groovy-4.0.23.jar:4.0.23]
+	at groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:328) [groovy-4.0.23.jar:4.0.23]
+	at groovy.lang.MetaClassImpl.doInvokeMethod(MetaClassImpl.java:1333) [groovy-4.0.23.jar:4.0.23]
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1088) [groovy-4.0.23.jar:4.0.23]
+	at org.codehaus.groovy.runtime.ScriptBytecodeAdapter.invokeMethodOnSuperN(ScriptBytecodeAdapter.java:146) [groovy-4.0.23.jar:4.0.23]
+	at org.apache.tinkerpop.gremlin.console.GremlinGroovysh.execute(GremlinGroovysh.groovy:87) [gremlin-console-3.7.3.jar:3.7.3]
+	at org.codehaus.groovy.vmplugin.v8.IndyInterface.fromCache(IndyInterface.java:321) [groovy-4.0.23.jar:4.0.23]
+	at org.apache.tinkerpop.gremlin.console.Console$_executeInShell_closure17.doCall(Console.groovy:491) [gremlin-console-3.7.3.jar:3.7.3]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[?:?]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) ~[?:?]
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[?:?]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566) ~[?:?]
+	at org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:343) [groovy-4.0.23.jar:4.0.23]
+	at groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:328) [groovy-4.0.23.jar:4.0.23]
+	at org.codehaus.groovy.runtime.metaclass.ClosureMetaClass.invokeMethod(ClosureMetaClass.java:279) [groovy-4.0.23.jar:4.0.23]
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1007) [groovy-4.0.23.jar:4.0.23]
+	at groovy.lang.Closure.call(Closure.java:433) [groovy-4.0.23.jar:4.0.23]
+	at org.codehaus.groovy.runtime.DefaultGroovyMethods.eachWithIndex(DefaultGroovyMethods.java:2310) [groovy-4.0.23.jar:4.0.23]
+	at org.codehaus.groovy.runtime.DefaultGroovyMethods.eachWithIndex(DefaultGroovyMethods.java:2290) [groovy-4.0.23.jar:4.0.23]
+	at org.codehaus.groovy.runtime.DefaultGroovyMethods.eachWithIndex(DefaultGroovyMethods.java:2340) [groovy-4.0.23.jar:4.0.23]
+	at org.codehaus.groovy.runtime.dgm$220.doMethodInvoke(Unknown Source) [groovy-4.0.23.jar:4.0.23]
+	at org.codehaus.groovy.vmplugin.v8.IndyInterface.fromCache(IndyInterface.java:321) [groovy-4.0.23.jar:4.0.23]
+	at org.apache.tinkerpop.gremlin.console.Console.executeInShell(Console.groovy:468) [gremlin-console-3.7.3.jar:3.7.3]
+	at org.codehaus.groovy.vmplugin.v8.IndyInterface.fromCache(IndyInterface.java:321) [groovy-4.0.23.jar:4.0.23]
+	at org.apache.tinkerpop.gremlin.console.Console.<init>(Console.groovy:170) [gremlin-console-3.7.3.jar:3.7.3]
+	at org.codehaus.groovy.vmplugin.v8.IndyInterface.fromCache(IndyInterface.java:321) [groovy-4.0.23.jar:4.0.23]
+	at org.apache.tinkerpop.gremlin.console.Console.main(Console.groovy:574) [gremlin-console-3.7.3.jar:3.7.3]
+21:29:57 INFO  org.janusgraph.diskstorage.kvt.KVTStoreManager.<clinit> - Loaded KVT native library from system path
+21:29:57 INFO  org.janusgraph.diskstorage.kvt.KVTStoreManager.<init> - Initialized KVT Store Manager with native pointer: 1
+kvt_create_table: table_name=system_properties, partition_method=range -> SUCCESS, table_id=1
+kvt_start_transaction -> SUCCESS, tx_id=1
+kvt_scan: tx_id=1, table_id=1, key_start=configuration\0hidden.frozen, key_end=configuration\0hidden.frozeo, limit=2147483647DEBUG OCC scan: results_writes.size()=0, results_table.size()=0
+DEBUG OCC scan: merged results_table.size()=0
+DEBUG OCC scan: final results.size()=0
+ -> SUCCESS, count=0
+JNI nativeScan - immediately after kvt_scan: error=0, results.size()=0
+JNI nativeScan returning null (error=0, results.empty()=1)
+kvt_commit_transaction: tx_id=1 -> SUCCESS
+kvt_start_transaction -> SUCCESS, tx_id=2
+kvt_scan: tx_id=2, table_id=1, key_start=configuration\0graph.janusgraph-version, key_end=configuration\0graph.janusgraph-versioo, limit=2147483647DEBUG OCC scan: results_writes.size()=0, results_table.size()=0
+DEBUG OCC scan: merged results_table.size()=0
+DEBUG OCC scan: final results.size()=0
+ -> SUCCESS, count=0
+JNI nativeScan - immediately after kvt_scan: error=0, results.size()=0
+JNI nativeScan returning null (error=0, results.empty()=1)
+kvt_commit_transaction: tx_id=2 -> SUCCESS
+kvt_start_transaction -> SUCCESS, tx_id=3
+kvt_set: tx_id=3, table_id=1, key=configuration\0graph.janusgraph-version, value=\x92\xa01.2.0-SNAPSHO\xd4 -> SUCCESS
+kvt_commit_transaction: tx_id=3 -> SUCCESS
+kvt_start_transaction -> SUCCESS, tx_id=4
+kvt_scan: tx_id=4, table_id=1, key_start=configuration\0graph.storage-version, key_end=configuration\0graph.storage-versioo, limit=2147483647DEBUG OCC scan: results_writes.size()=0, results_table.size()=0
+DEBUG OCC scan: merged results_table.size()=0
+DEBUG OCC scan: final results.size()=0
+ -> SUCCESS, count=0
+JNI nativeScan - immediately after kvt_scan: error=0, results.size()=0
+JNI nativeScan returning null (error=0, results.empty()=1)
+kvt_commit_transaction: tx_id=4 -> SUCCESS
+kvt_start_transaction -> SUCCESS, tx_id=5
+kvt_set: tx_id=5, table_id=1, key=configuration\0graph.storage-version, value=\x92\xa0\xb2 -> SUCCESS
+kvt_commit_transaction: tx_id=5 -> SUCCESS
+kvt_start_transaction -> SUCCESS, tx_id=6
+kvt_set: tx_id=6, table_id=1, key=configuration\0graph.timestamps, value=\xb6\x81 -> SUCCESS
+kvt_commit_transaction: tx_id=6 -> SUCCESS
+kvt_start_transaction -> SUCCESS, tx_id=7
+kvt_scan: tx_id=7, table_id=1, key_start=configuration\0graph.timestamps, key_end=configuration\0graph.timestampt, limit=2147483647DEBUG OCC scan: results_writes.size()=0, results_table.size()=1
+DEBUG OCC scan: merged results_table.size()=1
+DEBUG OCC scan: final results.size()=1
+ -> SUCCESS, count=1 (first key len=30, val len=2)
+JNI nativeScan - immediately after kvt_scan: error=0, results.size()=1, first result key_len=30, val_len=2
+JNI nativeScan creating result array with 1 pairs
+kvt_commit_transaction: tx_id=7 -> SUCCESS
+21:29:57 INFO  org.janusgraph.diskstorage.configuration.builder.ReadConfigurationBuilder.setupTimestampProvider - Set default timestamp provider MICRO
+kvt_start_transaction -> SUCCESS, tx_id=8
+kvt_set: tx_id=8, table_id=1, key=configuration\0hidden.frozen, value=\x8f\x01 -> SUCCESS
+kvt_commit_transaction: tx_id=8 -> SUCCESS
+kvt_start_transaction -> SUCCESS, tx_id=9
+kvt_scan: tx_id=9, table_id=1, key_start=configuration\0\0, key_end=configuration\0\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff, limit=2147483647DEBUG OCC scan: results_writes.size()=0, results_table.size()=4
+DEBUG OCC scan: merged results_table.size()=4
+DEBUG OCC scan: final results.size()=4
+ -> SUCCESS, count=4 (first key len=38, val len=16)
+JNI nativeScan - immediately after kvt_scan: error=0, results.size()=4, first result key_len=38, val_len=16
+JNI nativeScan creating result array with 4 pairs
+kvt_commit_transaction: tx_id=9 -> SUCCESS
+21:29:57 INFO  org.janusgraph.diskstorage.kvt.KVTStoreManager.close - KVT Store Manager closed
+21:29:57 INFO  org.janusgraph.graphdb.idmanagement.UniqueInstanceIdRetriever.getOrGenerateUniqueInstanceId - Generated unique-instance-id=7f000101377874-lintao-eloqdata1
+21:29:57 INFO  org.janusgraph.diskstorage.kvt.KVTStoreManager.<init> - Initialized KVT Store Manager with native pointer: 1
+21:29:57 INFO  org.janusgraph.diskstorage.Backend.<init> - kvt supports multi-key queries. Thus, option root.storage.parallel-backend-ops is ignored in favor of multi-key queries. Backend-ops executor pool will not be created for this storage backend.
+kvt_create_table: table_name=janusgraph_ids, partition_method=range -> SUCCESS, table_id=1
+kvt_create_table: table_name=edgestore, partition_method=range -> SUCCESS, table_id=2
+kvt_create_table: table_name=graphindex, partition_method=range -> SUCCESS, table_id=3
+kvt_create_table: table_name=txlog, partition_method=range -> SUCCESS, table_id=4
+kvt_start_transaction -> SUCCESS, tx_id=1
+kvt_scan: tx_id=1, table_id=4, key_start=\xff\xff\xff\xff\xa07f000101377874-lintao-eloqdata\xb1\0\x01, key_end=\xff\xff\xff\xff\xa07f000101377874-lintao-eloqdata\xb1\0\x02, limit=2DEBUG OCC scan: results_writes.size()=0, results_table.size()=0
+DEBUG OCC scan: merged results_table.size()=0
+DEBUG OCC scan: final results.size()=0
+ -> SUCCESS, count=0
+JNI nativeScan - immediately after kvt_scan: error=0, results.size()=0
+JNI nativeScan returning null (error=0, results.empty()=1)
+kvt_commit_transaction: tx_id=1 -> SUCCESS
+kvt_create_table: table_name=systemlog, partition_method=range -> SUCCESS, table_id=5
+kvt_start_transaction -> SUCCESS, tx_id=2
+kvt_scan: tx_id=2, table_id=5, key_start=\xff\xff\xff\xff\xa07f000101377874-lintao-eloqdata\xb1\0\x01, key_end=\xff\xff\xff\xff\xa07f000101377874-lintao-eloqdata\xb1\0\x02, limit=2DEBUG OCC scan: results_writes.size()=0, results_table.size()=0
+DEBUG OCC scan: merged results_table.size()=0
+DEBUG OCC scan: final results.size()=0
+ -> SUCCESS, count=0
+JNI nativeScan - immediately after kvt_scan: error=0, results.size()=0
+JNI nativeScan returning null (error=0, results.empty()=1)
+kvt_commit_transaction: tx_id=2 -> SUCCESS
+kvt_create_table: table_name=system_properties, partition_method=range -> SUCCESS, table_id=6
+21:29:57 INFO  org.janusgraph.graphdb.database.IndexSerializer.<init> - Hashing index keys
+21:29:57 INFO  org.janusgraph.graphdb.database.StandardJanusGraph.<init> - Gremlin script evaluation is disabled
+kvt_start_transaction -> SUCCESS, tx_id=3
+kvt_scan: tx_id=3, table_id=6, key_start=configuration\0system-registration.7f000101377874-lintao-eloqdata1.startup-time, key_end=configuration\0system-registration.7f000101377874-lintao-eloqdata1.startup-timf, limit=2147483647DEBUG OCC scan: results_writes.size()=0, results_table.size()=0
+DEBUG OCC scan: merged results_table.size()=0
+DEBUG OCC scan: final results.size()=0
+ -> SUCCESS, count=0
+JNI nativeScan - immediately after kvt_scan: error=0, results.size()=0
+JNI nativeScan returning null (error=0, results.empty()=1)
+kvt_commit_transaction: tx_id=3 -> SUCCESS
+kvt_start_transaction -> SUCCESS, tx_id=4
+kvt_set: tx_id=4, table_id=6, key=configuration\0system-registration.7f000101377874-lintao-eloqdata1.startup-time, value=\xc1\x80\0\0\0h\xb8B\xd5\x02M[Y\xb0 -> SUCCESS
+kvt_commit_transaction: tx_id=4 -> SUCCESS
+21:29:57 INFO  org.janusgraph.diskstorage.log.kcvs.KCVSLog$MessagePuller.initializeTimepoint - Loaded unidentified ReadMarker start time 2025-09-03T13:29:57.354291Z into org.janusgraph.diskstorage.log.kcvs.KCVSLog$MessagePuller@6315bb4
+\xe2\x9c\x93 KVT backend loaded successfully
+kvt_start_transaction -> SUCCESS, tx_id=5
+kvt_del: tx_id=5, table_id=6, key=configuration\0system-registration.7f000101377874-lintao-eloqdata1.startup-time -> SUCCESS
+kvt_commit_transaction: tx_id=5 -> SUCCESS
+kvt_start_transaction -> SUCCESS, tx_id=6
+kvt_set: tx_id=6, table_id=5, key=\xff\xff\xff\xff\xa07f000101377874-lintao-eloqdata\xb1\0\x01, value=\0\0\0\0\0\0\0\0 -> SUCCESS
+kvt_commit_transaction: tx_id=6 -> SUCCESS
+kvt_start_transaction -> SUCCESS, tx_id=7
+kvt_set: tx_id=7, table_id=4, key=\xff\xff\xff\xff\xa07f000101377874-lintao-eloqdata\xb1\0\x01, value=\0\0\0\0\0\0\0\0 -> SUCCESS
+kvt_commit_transaction: tx_id=7 -> SUCCESS
+21:29:57 INFO  org.janusgraph.diskstorage.kvt.KVTStoreManager.close - KVT Store Manager closed
