@@ -28,6 +28,7 @@ import org.janusgraph.diskstorage.common.AbstractStoreTransaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.janusgraph.diskstorage.logging.StorageLoggingUtil;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -89,6 +90,8 @@ public class BerkeleyJETx extends AbstractStoreTransaction {
 
     @Override
     public synchronized void rollback() throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         super.rollback();
         if (tx == null) return;
         if (log.isTraceEnabled())
@@ -101,10 +104,14 @@ public class BerkeleyJETx extends AbstractStoreTransaction {
         } catch (DatabaseException e) {
             throw new PermanentBackendException(e);
         }
+        
+        StorageLoggingUtil.logFunctionCall("STORAGE-TX:" + hashCode(), "rollback()", null, startTime);
     }
 
     @Override
     public synchronized void commit() throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         super.commit();
         if (tx == null) return;
         if (log.isTraceEnabled())
@@ -117,6 +124,8 @@ public class BerkeleyJETx extends AbstractStoreTransaction {
         } catch (DatabaseException e) {
             throw new PermanentBackendException(e);
         }
+        
+        StorageLoggingUtil.logFunctionCall("STORAGE-TX:" + hashCode(), "commit()", null, startTime);
     }
 
     @Override

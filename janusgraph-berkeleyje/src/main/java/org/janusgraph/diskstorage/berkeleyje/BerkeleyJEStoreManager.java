@@ -48,6 +48,7 @@ import org.janusgraph.util.system.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.janusgraph.diskstorage.logging.StorageLoggingUtil;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -183,16 +184,27 @@ public class BerkeleyJEStoreManager extends LocalStoreManager implements Ordered
 
     @Override
     public StoreFeatures getFeatures() {
-        return features;
+        long startTime = System.currentTimeMillis();
+        StoreFeatures result = features;
+        
+        StorageLoggingUtil.logFunctionCall("STORAGE-MANAGER", "getFeatures()", null, startTime);
+        
+        return result;
     }
 
     @Override
     public List<KeyRange> getLocalKeyPartition() throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
+        StorageLoggingUtil.logFunctionCall("STORAGE-MANAGER", "getLocalKeyPartition()", null, startTime);
+        
         throw new UnsupportedOperationException();
     }
 
     @Override
     public BerkeleyJETx beginTransaction(final BaseTransactionConfig txCfg) throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         try {
             Transaction tx = null;
 
@@ -222,6 +234,11 @@ public class BerkeleyJEStoreManager extends LocalStoreManager implements Ordered
                 log.trace("Berkeley tx created", new TransactionBegin(btx.toString()));
             }
 
+            Map<String, Object> params = new HashMap<>();
+            params.put("Config", txCfg.toString());
+            params.put("TxId", btx.hashCode());
+            StorageLoggingUtil.logFunctionCall("STORAGE-MANAGER", "beginTransaction()", params, startTime);
+
             return btx;
         } catch (DatabaseException e) {
             throw new PermanentBackendException("Could not start BerkeleyJE transaction", e);
@@ -230,9 +247,18 @@ public class BerkeleyJEStoreManager extends LocalStoreManager implements Ordered
 
     @Override
     public BerkeleyJEKeyValueStore openDatabase(String name) throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         Preconditions.checkNotNull(name);
         if (stores.containsKey(name)) {
-            return stores.get(name);
+            BerkeleyJEKeyValueStore store = stores.get(name);
+            
+            Map<String, Object> params = new HashMap<>();
+            params.put("Name", name);
+            params.put("Created", false);
+            StorageLoggingUtil.logFunctionCall("STORAGE-MANAGER", "openDatabase()", params, startTime);
+            
+            return store;
         }
         try {
             DatabaseConfig dbConfig = new DatabaseConfig();
@@ -251,6 +277,12 @@ public class BerkeleyJEStoreManager extends LocalStoreManager implements Ordered
 
             BerkeleyJEKeyValueStore store = new BerkeleyJEKeyValueStore(name, db, this);
             stores.put(name, store);
+            
+            Map<String, Object> params = new HashMap<>();
+            params.put("Name", name);
+            params.put("Created", true);
+            StorageLoggingUtil.logFunctionCall("STORAGE-MANAGER", "openDatabase()", params, startTime);
+            
             return store;
         } catch (DatabaseException e) {
             throw new PermanentBackendException("Could not open BerkeleyJE data store", e);
@@ -259,6 +291,8 @@ public class BerkeleyJEStoreManager extends LocalStoreManager implements Ordered
 
     @Override
     public void mutateMany(Map<String, KVMutation> mutations, StoreTransaction txh) throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         for (Map.Entry<String,KVMutation> mutation : mutations.entrySet()) {
             BerkeleyJEKeyValueStore store = openDatabase(mutation.getKey());
             KVMutation mutationValue = mutation.getValue();
@@ -282,6 +316,11 @@ public class BerkeleyJEStoreManager extends LocalStoreManager implements Ordered
                 }
             }
         }
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("Stores", mutations.size());
+        params.put("TotalMutations", mutations.values().stream().mapToInt(m -> m.getAdditions().size() + m.getDeletions().size()).sum());
+        StorageLoggingUtil.logFunctionCall("STORAGE-MANAGER", "mutateMany()", params, startTime);
     }
 
     void removeDatabase(BerkeleyJEKeyValueStore db) {
@@ -296,6 +335,8 @@ public class BerkeleyJEStoreManager extends LocalStoreManager implements Ordered
 
     @Override
     public void close() throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         if (environment != null) {
             if (!stores.isEmpty())
                 throw new IllegalStateException("Cannot shutdown manager since some databases are still open");
@@ -312,13 +353,16 @@ public class BerkeleyJEStoreManager extends LocalStoreManager implements Ordered
                 throw new PermanentBackendException("Could not close BerkeleyJE database", e);
             }
         }
-
+        
+        StorageLoggingUtil.logFunctionCall("STORAGE-MANAGER", "close()", null, startTime);
     }
 
     private static final Transaction NULL_TRANSACTION = null;
 
     @Override
     public void clearStorage() throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         if (!stores.isEmpty()) {
             throw new IllegalStateException("Cannot delete store, since database is open: " + stores.keySet());
         }
@@ -329,16 +373,32 @@ public class BerkeleyJEStoreManager extends LocalStoreManager implements Ordered
         }
         close();
         IOUtils.deleteFromDirectory(directory);
+        
+        StorageLoggingUtil.logFunctionCall("STORAGE-MANAGER", "clearStorage()", null, startTime);
     }
 
     @Override
     public boolean exists() throws BackendException {
-        return !environment.getDatabaseNames().isEmpty();
+        long startTime = System.currentTimeMillis();
+        boolean result = !environment.getDatabaseNames().isEmpty();
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("Result", result);
+        StorageLoggingUtil.logFunctionCall("STORAGE-MANAGER", "exists()", params, startTime);
+        
+        return result;
     }
 
     @Override
     public String getName() {
-        return getClass().getSimpleName() + ":" + directory.toString();
+        long startTime = System.currentTimeMillis();
+        String result = getClass().getSimpleName() + ":" + directory.toString();
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("Result", result);
+        StorageLoggingUtil.logFunctionCall("STORAGE-MANAGER", "getName()", params, startTime);
+        
+        return result;
     }
 
 

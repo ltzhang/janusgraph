@@ -35,6 +35,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import org.janusgraph.diskstorage.logging.StorageLoggingUtil;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -73,47 +75,86 @@ public class InMemoryStoreManager implements KeyColumnValueStoreManager {
 
     @Override
     public StoreTransaction beginTransaction(final BaseTransactionConfig config) throws BackendException {
-        return new InMemoryTransaction(config);
+        long startTime = System.currentTimeMillis();
+        StoreTransaction tx = new InMemoryTransaction(config);
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("Config", config.toString());
+        params.put("TxId", tx.hashCode());
+        StorageLoggingUtil.logFunctionCall("STORAGE-MANAGER", "beginTransaction()", params, startTime);
+        
+        return tx;
     }
 
     @Override
     public void close() throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         for (InMemoryKeyColumnValueStore store : stores.values()) {
             store.close();
         }
         stores.clear();
+        
+        StorageLoggingUtil.logFunctionCall("STORAGE-MANAGER", "close()", null, startTime);
     }
 
     @Override
     public void clearStorage() throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         for (InMemoryKeyColumnValueStore store : stores.values()) {
             store.clear();
         }
         stores.clear();
+        
+        StorageLoggingUtil.logFunctionCall("STORAGE-MANAGER", "clearStorage()", null, startTime);
     }
 
     @Override
     public boolean exists() throws BackendException {
-        return !stores.isEmpty();
+        long startTime = System.currentTimeMillis();
+        boolean result = !stores.isEmpty();
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("Result", result);
+        StorageLoggingUtil.logFunctionCall("STORAGE-MANAGER", "exists()", params, startTime);
+        
+        return result;
     }
 
     @Override
     public StoreFeatures getFeatures() {
-        return features;
+        long startTime = System.currentTimeMillis();
+        StoreFeatures result = features;
+        
+        StorageLoggingUtil.logFunctionCall("STORAGE-MANAGER", "getFeatures()", null, startTime);
+        
+        return result;
     }
 
     @Override
     public KeyColumnValueStore openDatabase(final String name, StoreMetaData.Container metaData) throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
+        boolean created = !stores.containsKey(name);
         if (!stores.containsKey(name)) {
             stores.putIfAbsent(name, new InMemoryKeyColumnValueStore(name));
         }
         KeyColumnValueStore store = stores.get(name);
         Preconditions.checkNotNull(store);
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("Name", name);
+        params.put("Created", created);
+        StorageLoggingUtil.logFunctionCall("STORAGE-MANAGER", "openDatabase()", params, startTime);
+        
         return store;
     }
 
     @Override
     public void mutateMany(Map<String, Map<StaticBuffer, KCVMutation>> mutations, StoreTransaction txh) throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         for (Map.Entry<String, Map<StaticBuffer, KCVMutation>> storeMut : mutations.entrySet()) {
             KeyColumnValueStore store = stores.get(storeMut.getKey());
             Preconditions.checkNotNull(store);
@@ -121,16 +162,32 @@ public class InMemoryStoreManager implements KeyColumnValueStoreManager {
                 store.mutate(keyMut.getKey(), keyMut.getValue().getAdditions(), keyMut.getValue().getDeletions(), txh);
             }
         }
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("Stores", mutations.size());
+        params.put("TotalMutations", mutations.values().stream().mapToInt(Map::size).sum());
+        StorageLoggingUtil.logFunctionCall("STORAGE-MANAGER", "mutateMany()", params, startTime);
     }
 
     @Override
     public List<KeyRange> getLocalKeyPartition() throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
+        StorageLoggingUtil.logFunctionCall("STORAGE-MANAGER", "getLocalKeyPartition()", null, startTime);
+        
         throw new UnsupportedOperationException();
     }
 
     @Override
     public String getName() {
-        return toString();
+        long startTime = System.currentTimeMillis();
+        String result = toString();
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("Result", result);
+        StorageLoggingUtil.logFunctionCall("STORAGE-MANAGER", "getName()", params, startTime);
+        
+        return result;
     }
 
     public void makeSnapshot(File targetSnapshotDirectory, ForkJoinPool parallelOperationsExecutor) throws IOException {
@@ -189,6 +246,20 @@ public class InMemoryStoreManager implements KeyColumnValueStoreManager {
 
         public InMemoryTransaction(final BaseTransactionConfig config) {
             super(config);
+        }
+        
+        @Override
+        public void commit() throws BackendException {
+            long startTime = System.currentTimeMillis();
+            super.commit();
+            StorageLoggingUtil.logFunctionCall("STORAGE-TX:" + hashCode(), "commit()", null, startTime);
+        }
+        
+        @Override
+        public void rollback() throws BackendException {
+            long startTime = System.currentTimeMillis();
+            super.rollback();
+            StorageLoggingUtil.logFunctionCall("STORAGE-TX:" + hashCode(), "rollback()", null, startTime);
         }
     }
 }

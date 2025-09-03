@@ -42,10 +42,12 @@ import org.janusgraph.diskstorage.util.StaticArrayBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.janusgraph.diskstorage.logging.StorageLoggingUtil;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -82,7 +84,12 @@ public class BerkeleyJEKeyValueStore implements OrderedKeyValueStore {
 
     @Override
     public String getName() {
-        return name;
+        long startTime = System.currentTimeMillis();
+        String result = name;
+        
+        StorageLoggingUtil.logFunctionCall("STORAGE-STORE:" + name, "getName()", null, startTime);
+        
+        return result;
     }
 
     private static Transaction getTransaction(StoreTransaction txh) {
@@ -102,6 +109,8 @@ public class BerkeleyJEKeyValueStore implements OrderedKeyValueStore {
 
     @Override
     public synchronized void close() throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         try {
             if(isOpen) db.close();
         } catch (DatabaseException e) {
@@ -109,10 +118,14 @@ public class BerkeleyJEKeyValueStore implements OrderedKeyValueStore {
         }
         if (isOpen) manager.removeDatabase(this);
         isOpen = false;
+        
+        StorageLoggingUtil.logFunctionCall("STORAGE-STORE:" + name, "close()", null, startTime);
     }
 
     @Override
     public StaticBuffer get(StaticBuffer key, StoreTransaction txh) throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         Transaction tx = getTransaction(txh);
         try {
             DatabaseEntry databaseKey = key.as(ENTRY_FACTORY);
@@ -122,11 +135,17 @@ public class BerkeleyJEKeyValueStore implements OrderedKeyValueStore {
 
             OperationResult result = db.get(tx, databaseKey, data, Get.SEARCH, getReadOptions(txh));
 
+            StaticBuffer value = null;
             if (result != null) {
-                return getBuffer(data);
-            } else {
-                return null;
+                value = getBuffer(data);
             }
+            
+            Map<String, Object> params = new HashMap<>();
+            params.put("Key", StorageLoggingUtil.serializeBuffer(key));
+            params.put("Value", value != null ? StorageLoggingUtil.serializeBuffer(value) : "null");
+            StorageLoggingUtil.logFunctionCall("STORAGE-STORE:" + name, "get()", params, startTime);
+            
+            return value;
         } catch (DatabaseException e) {
             throw new PermanentBackendException(e);
         }
@@ -134,18 +153,35 @@ public class BerkeleyJEKeyValueStore implements OrderedKeyValueStore {
 
     @Override
     public boolean containsKey(StaticBuffer key, StoreTransaction txh) throws BackendException {
-        return get(key,txh)!=null;
+        long startTime = System.currentTimeMillis();
+        boolean result = get(key,txh)!=null;
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("Key", StorageLoggingUtil.serializeBuffer(key));
+        params.put("Result", result);
+        StorageLoggingUtil.logFunctionCall("STORAGE-STORE:" + name, "containsKey()", params, startTime);
+        
+        return result;
     }
 
     @Override
     public void acquireLock(StaticBuffer key, StaticBuffer expectedValue, StoreTransaction txh) throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         if (getTransaction(txh) == null) {
             log.warn("Attempt to acquire lock with transactions disabled");
         } //else we need no locking
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("Key", StorageLoggingUtil.serializeBuffer(key));
+        params.put("ExpectedValue", expectedValue != null ? StorageLoggingUtil.serializeBuffer(expectedValue) : "null");
+        StorageLoggingUtil.logFunctionCall("STORAGE-STORE:" + name, "acquireLock()", params, startTime);
     }
 
     @Override
     public RecordIterator<KeyValueEntry> getSlice(KVQuery query, StoreTransaction txh) throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         log.trace("beginning db={}, op=getSlice, tx={}", name, txh);
         final StaticBuffer keyStart = query.getStart();
         final StaticBuffer keyEnd = query.getEnd();
@@ -154,7 +190,7 @@ public class BerkeleyJEKeyValueStore implements OrderedKeyValueStore {
         final DatabaseEntry foundData = new DatabaseEntry();
         final Cursor cursor = openCursor(txh);
 
-        return new RecordIterator<KeyValueEntry>() {
+        RecordIterator<KeyValueEntry> result = new RecordIterator<KeyValueEntry>() {
             private OperationStatus status;
             private KeyValueEntry current;
 
@@ -213,16 +249,37 @@ public class BerkeleyJEKeyValueStore implements OrderedKeyValueStore {
                 throw new UnsupportedOperationException();
             }
         };
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("KeyStart", StorageLoggingUtil.serializeBuffer(keyStart));
+        params.put("KeyEnd", StorageLoggingUtil.serializeBuffer(keyEnd));
+        StorageLoggingUtil.logFunctionCall("STORAGE-STORE:" + name, "getSlice()", params, startTime);
+        
+        return result;
     }
 
     @Override
     public Map<KVQuery,RecordIterator<KeyValueEntry>> getSlices(List<KVQuery> queries, StoreTransaction txh) throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("QueryCount", queries.size());
+        StorageLoggingUtil.logFunctionCall("STORAGE-STORE:" + name, "getSlices()", params, startTime);
+        
         throw new UnsupportedOperationException();
     }
 
     @Override
     public void insert(StaticBuffer key, StaticBuffer value, StoreTransaction txh, Integer ttl) throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         insert(key, value, txh, true, ttl);
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("Key", StorageLoggingUtil.serializeBuffer(key));
+        params.put("Value", StorageLoggingUtil.serializeBuffer(value));
+        params.put("TTL", ttl);
+        StorageLoggingUtil.logFunctionCall("STORAGE-STORE:" + name, "insert()", params, startTime);
     }
 
     public void insert(StaticBuffer key, StaticBuffer value, StoreTransaction txh, boolean allowOverwrite, Integer ttl) throws BackendException {
@@ -253,6 +310,8 @@ public class BerkeleyJEKeyValueStore implements OrderedKeyValueStore {
 
     @Override
     public void delete(StaticBuffer key, StoreTransaction txh) throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         log.trace("Deletion");
         Transaction tx = getTransaction(txh);
         try {
@@ -264,6 +323,10 @@ public class BerkeleyJEKeyValueStore implements OrderedKeyValueStore {
         } catch (DatabaseException e) {
             throw new PermanentBackendException(e);
         }
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("Key", StorageLoggingUtil.serializeBuffer(key));
+        StorageLoggingUtil.logFunctionCall("STORAGE-STORE:" + name, "delete()", params, startTime);
     }
 
     private static StaticBuffer getBuffer(DatabaseEntry entry) {

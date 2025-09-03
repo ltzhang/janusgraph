@@ -50,6 +50,8 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import org.janusgraph.diskstorage.logging.StorageLoggingUtil;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentNavigableMap;
@@ -101,60 +103,130 @@ public class InMemoryKeyColumnValueStore implements KeyColumnValueStore {
 
     @Override
     public EntryList getSlice(KeySliceQuery query, StoreTransaction txh) throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         InMemoryColumnValueStore cvs = kcv.get(query.getKey());
-        if (cvs == null) return EntryList.EMPTY_LIST;
-        else return cvs.getSlice(query, txh);
+        EntryList result = (cvs == null) ? EntryList.EMPTY_LIST : cvs.getSlice(query, txh);
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("Key", StorageLoggingUtil.serializeBuffer(query.getKey()));
+        params.put("Columns", StorageLoggingUtil.serializeBuffer(query.getSliceStart()) + "-" + StorageLoggingUtil.serializeBuffer(query.getSliceEnd()));
+        params.put("Limit", query.getLimit());
+        params.put("ResultCount", result.size());
+        StorageLoggingUtil.logFunctionCall("STORAGE-STORE:" + name, "getSlice(KeySliceQuery)", params, startTime);
+        
+        return result;
     }
 
     @Override
     public Map<StaticBuffer,EntryList> getSlice(List<StaticBuffer> keys, SliceQuery query, StoreTransaction txh) throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         Map<StaticBuffer,EntryList> result = Maps.newHashMap();
         for (StaticBuffer key : keys) result.put(key,getSlice(new KeySliceQuery(key,query),txh));
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("Keys", keys.size());
+        params.put("Columns", StorageLoggingUtil.serializeBuffer(query.getSliceStart()) + "-" + StorageLoggingUtil.serializeBuffer(query.getSliceEnd()));
+        params.put("Limit", query.getLimit());
+        params.put("ResultCount", result.size());
+        StorageLoggingUtil.logFunctionCall("STORAGE-STORE:" + name, "getSlice(List<StaticBuffer>, SliceQuery)", params, startTime);
+        
         return result;
     }
 
     @Override
     public void mutate(StaticBuffer key, List<Entry> additions, List<StaticBuffer> deletions, StoreTransaction txh) throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         InMemoryColumnValueStore cvs = kcv.get(key);
         if (cvs == null) {
             kcv.putIfAbsent(key, new InMemoryColumnValueStore());
             cvs = kcv.get(key);
         }
         cvs.mutate(additions, deletions, txh);
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("Key", StorageLoggingUtil.serializeBuffer(key));
+        params.put("Additions", additions != null ? additions.size() : 0);
+        params.put("Deletions", deletions != null ? deletions.size() : 0);
+        StorageLoggingUtil.logFunctionCall("STORAGE-STORE:" + name, "mutate()", params, startTime);
     }
 
     @Override
     public void acquireLock(StaticBuffer key, StaticBuffer column, StaticBuffer expectedValue, StoreTransaction txh) throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
+        StorageLoggingUtil.logFunctionCall("STORAGE-STORE:" + name, "acquireLock()", null, startTime);
+        
         throw new UnsupportedOperationException();
     }
 
     @Override
     public KeyIterator getKeys(final KeyRangeQuery query, final StoreTransaction txh) throws BackendException {
-        return new RowIterator(kcv.subMap(query.getKeyStart(), query.getKeyEnd()).entrySet().iterator(), query, txh);
+        long startTime = System.currentTimeMillis();
+        
+        KeyIterator result = new RowIterator(kcv.subMap(query.getKeyStart(), query.getKeyEnd()).entrySet().iterator(), query, txh);
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("KeyStart", StorageLoggingUtil.serializeBuffer(query.getKeyStart()));
+        params.put("KeyEnd", StorageLoggingUtil.serializeBuffer(query.getKeyEnd()));
+        params.put("Limit", query.getLimit());
+        StorageLoggingUtil.logFunctionCall("STORAGE-STORE:" + name, "getKeys(KeyRangeQuery)", params, startTime);
+        
+        return result;
     }
 
     @Override
     public KeyIterator getKeys(SliceQuery query, StoreTransaction txh) throws BackendException {
-        return new RowIterator(kcv.entrySet().iterator(), query, txh);
+        long startTime = System.currentTimeMillis();
+        
+        KeyIterator result = new RowIterator(kcv.entrySet().iterator(), query, txh);
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("Columns", StorageLoggingUtil.serializeBuffer(query.getSliceStart()) + "-" + StorageLoggingUtil.serializeBuffer(query.getSliceEnd()));
+        params.put("Limit", query.getLimit());
+        StorageLoggingUtil.logFunctionCall("STORAGE-STORE:" + name, "getKeys(SliceQuery)", params, startTime);
+        
+        return result;
     }
 
     @Override
     public KeySlicesIterator getKeys(MultiSlicesQuery queries, StoreTransaction txh) throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
+        StorageLoggingUtil.logFunctionCall("STORAGE-STORE:" + name, "getKeys(MultiSlicesQuery)", null, startTime);
+        
         throw new UnsupportedOperationException();
     }
 
     @Override
     public String getName() {
-        return name;
+        long startTime = System.currentTimeMillis();
+        String result = name;
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("Result", result);
+        StorageLoggingUtil.logFunctionCall("STORAGE-STORE:" + name, "getName()", params, startTime);
+        
+        return result;
     }
 
     public void clear() {
+        long startTime = System.currentTimeMillis();
+        
         kcv.clear();
+        
+        StorageLoggingUtil.logFunctionCall("STORAGE-STORE:" + name, "clear()", null, startTime);
     }
 
     @Override
     public void close() throws BackendException {
+        long startTime = System.currentTimeMillis();
+        
         kcv.clear();
+        
+        StorageLoggingUtil.logFunctionCall("STORAGE-STORE:" + name, "close()", null, startTime);
     }
 
     public InMemoryKeyColumnValueStoreFragmentationReport createFragmentationReport(StoreTransaction txh) throws BackendException {
