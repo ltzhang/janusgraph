@@ -1,11 +1,11 @@
 #!/bin/bash
 # setup-kvt.sh
 
-DIST_DIR="janusgraph-full-1.2.0-SNAPSHOT"
+DIST_DIR="janusgraph-1.2.0-SNAPSHOT"
 
 # Copy required files
-cp janusgraph-kvt/target/janusgraph-kvt-1.2.0-SNAPSHOT.jar $DIST_DIR/lib/
-cp janusgraph-kvt/src/main/native/libjanusgraph-kvt-jni.so $DIST_DIR/lib/
+cp ../janusgraph-kvt/target/janusgraph-kvt-1.2.0-SNAPSHOT.jar $DIST_DIR/lib/
+cp ../janusgraph-kvt/src/main/native/libjanusgraph-kvt-jni.so $DIST_DIR/lib/
 
 # Create KVT launcher
 cat > $DIST_DIR/bin/gremlin-kvt.sh << 'EOF'
@@ -25,4 +25,4 @@ storage.directory=/tmp/janusgraph-kvt
 gremlin.graph=org.janusgraph.core.JanusGraphFactory
 EOF
 
-echo "KVT backend setup complete!"
+secho "KVT backend setup complete!"

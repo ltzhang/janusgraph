@@ -285,7 +285,25 @@ public class KVTKeyColumnValueStore implements KeyColumnValueStore {
     @Override
     public KeyIterator getKeys(SliceQuery query, StoreTransaction txh) throws BackendException {
         // For unordered scan, we scan all keys and filter by column range
-        return getKeys(new KeyRangeQuery(new StaticArrayBuffer(new byte[]{0}), new StaticArrayBuffer(new byte[]{(byte)0xFF}), query), txh);
+        // When doing a full scan for vertex iteration, we need to remove the limit from existence queries
+        // The limit=1 is meant for checking vertex existence, not for iterating all vertices
+        SliceQuery scanQuery = query;
+        
+        log.debug("JAVA getKeys(SliceQuery) called with limit={}, sliceStart={}, sliceEnd={}", 
+                 query.getLimit(), 
+                 query.getSliceStart() != null ? bytesToHex(query.getSliceStart().as(StaticBuffer.ARRAY_FACTORY)) : "null",
+                 query.getSliceEnd() != null ? bytesToHex(query.getSliceEnd().as(StaticBuffer.ARRAY_FACTORY)) : "null");
+        
+        if (query.getLimit() == 1) {
+            // This is likely a vertex existence query being reused for iteration
+            // Create a new query without the limit
+            log.debug("JAVA getKeys - removing limit=1 for full scan");
+            scanQuery = new SliceQuery(query.getSliceStart(), query.getSliceEnd()).setLimit(Integer.MAX_VALUE);
+        }
+        // Use an empty byte array for start and a large byte array for end to scan all keys
+        byte[] endBytes = new byte[8];
+        Arrays.fill(endBytes, (byte)0xFF);
+        return getKeys(new KeyRangeQuery(new StaticArrayBuffer(new byte[0]), new StaticArrayBuffer(endBytes), scanQuery), txh);
     }
     
     @Override

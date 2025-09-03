@@ -52,3 +52,4 @@ janusgraph-benchmark/benchmark.json
 janusgraph-kvt/kvt/kvt_mem.o
 janusgraph-kvt/src/main/native/libjanusgraph-kvt-jni.so
 janusgraph-full-1.2.0-SNAPSHOT/
+work/janusgraph-1.2.0-SNAPSHOT/
