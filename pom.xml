@@ -98,8 +98,8 @@
         <!-- https://downloads.apache.org/cassandra/4.0.6/apache-cassandra-4.0.6-bin.tar.gz.sha256 -->
         <cassandra-dist.version>4.0.6</cassandra-dist.version>
         <cassandra-dist.version.sha256>86d14a8e158e4e8554388b1aab598efcb879ddb09c480edecabb3c350b58fe6b</cassandra-dist.version.sha256>
-        <cassandra-driver.version>4.17.0</cassandra-driver.version>
-        <scylla-driver.version>4.18.0.1</scylla-driver.version>
+        <cassandra-driver.version>4.19.1</cassandra-driver.version>
+        <scylla-driver.version>4.19.0.1</scylla-driver.version>
         <scylladb.version>6.2.0</scylladb.version>
         <testcontainers.version>1.20.1</testcontainers.version>
         <easymock.version>5.4.0</easymock.version>
@@ -377,10 +377,9 @@
                     <configuration>
                         <source>${compiler.source}</source>
                         <target>${compiler.target}</target>
-                        <compilerArguments>
-                            <Xmaxerrs>500</Xmaxerrs>
-                        </compilerArguments>
                         <compilerArgs>
+                            <arg>-Xmaxerrs</arg>
+                            <arg>500</arg>
                             <arg>-Xlint:unchecked</arg>
                         </compilerArgs>
                     </configuration>
@@ -1426,11 +1425,6 @@
                         <artifactId>netty-transport-native-epoll</artifactId>
                     </exclusion>
                 </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-transport-native-epoll</artifactId>
-                <version>${netty4.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.codehaus.woodstox</groupId>
